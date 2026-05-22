@@ -130,11 +130,19 @@ function createWebview(adapterId, url) {
   });
 
   // Don't add to window here — showView() handles that
-  view.webContents.loadURL(url);
+  view.webContents.loadURL(url).catch(e => {
+    console.error(`Failed to load ${url}:`, e.message);
+  });
 
   // Inject reply observer after page loads
   view.webContents.on('did-finish-load', () => {
     injectObserver(adapterId, view);
+  });
+
+  // Handle load failures gracefully
+  view.webContents.on('did-fail-load', (event, errorCode, errorDesc) => {
+    console.error(`Webview ${adapterId} failed to load: ${errorCode} ${errorDesc}`);
+    // Don't crash — user can reload manually
   });
 
   webviews[adapterId] = view;
@@ -200,7 +208,18 @@ async function sendMessage(adapterId, text) {
   let view = webviews[adapterId];
   if (!view) {
     view = createWebview(adapterId, adapter.url);
-    await new Promise(r => setTimeout(r, 3000)); // wait for page load
+    // Wait for page to load with timeout
+    await new Promise((resolve) => {
+      const timeout = setTimeout(resolve, 5000);
+      view.webContents.once('did-finish-load', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      view.webContents.once('did-fail-load', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
   }
 
   replyBuffers[adapterId] = '';
@@ -276,7 +295,11 @@ ipcMain.handle('open-external', (event, url) => {
 
 ipcMain.handle('reload-view', (event, adapterId) => {
   if (webviews[adapterId]) {
-    webviews[adapterId].webContents.reload();
+    try {
+      webviews[adapterId].webContents.reload();
+    } catch (e) {
+      console.error(`Reload failed for ${adapterId}:`, e.message);
+    }
   }
 });
 
@@ -299,6 +322,11 @@ ipcMain.on('webview-reply-done', (event, adapterId) => {
 });
 
 // ── App Lifecycle ───────────────────────────────────────
+// Prevent unhandled network errors from crashing the app
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.message);
+});
+
 app.whenReady().then(() => {
   createWindow();
 
