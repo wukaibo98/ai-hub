@@ -108,6 +108,7 @@ module.exports = {
           const sendBtn = document.querySelector('button[aria-label="Send Message"]') ||
                           document.querySelector('button[aria-label="Send"]');
           if (sendBtn && !sendBtn.disabled) sendBtn.click();
+          else target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
         } catch(e) { console.error('AI Hub send error (Claude):', e); }
       })();
     `;
