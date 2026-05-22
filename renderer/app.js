@@ -45,10 +45,20 @@ function renderSidebar() {
   adapters.forEach(adapter => {
     const enabled = config.adapters?.[adapter.id]?.enabled !== false;
     const isActive = activeAdapter === adapter.id;
+    const currentModel = adapter.currentModel || adapter.defaultModel;
 
     const section = document.createElement('div');
     section.className = 'ai-section';
     section.dataset.id = adapter.id;
+
+    // Build model selector HTML
+    let modelSelectHTML = '';
+    if (adapter.models && adapter.models.length > 0) {
+      const options = adapter.models.map(m =>
+        `<option value="${m.id}" ${m.id === currentModel ? 'selected' : ''}>${m.name}</option>`
+      ).join('');
+      modelSelectHTML = `<select class="ai-model-select" data-adapter="${adapter.id}">${options}</select>`;
+    }
 
     section.innerHTML = `
       <div class="ai-section-header${isActive ? ' active' : ''}" data-id="${adapter.id}">
@@ -66,12 +76,12 @@ function renderSidebar() {
         </div>
         <div class="ai-section-status${enabled ? '' : ' disabled'}"></div>
       </div>
+      ${modelSelectHTML}
     `;
 
     // Click header to select adapter
     const header = section.querySelector('.ai-section-header');
     header.addEventListener('click', (e) => {
-      // Don't select if clicking action buttons
       if (e.target.closest('.ai-action-btn')) return;
       selectAdapter(adapter.id);
     });
@@ -89,6 +99,20 @@ function renderSidebar() {
         window.aiHub.deleteConversation(adapter.id);
       }
     });
+
+    // Model selector
+    const modelSelect = section.querySelector('.ai-model-select');
+    if (modelSelect) {
+      modelSelect.addEventListener('change', async (e) => {
+        e.stopPropagation();
+        const modelId = e.target.value;
+        config = await window.aiHub.switchModel(adapter.id, modelId);
+        // Update adapter's currentModel in memory
+        adapter.currentModel = modelId;
+      });
+      // Prevent clicking on select from triggering adapter selection
+      modelSelect.addEventListener('click', (e) => e.stopPropagation());
+    }
 
     list.appendChild(section);
   });

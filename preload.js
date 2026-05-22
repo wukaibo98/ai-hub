@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('aiHub', {
   resizeViews: () => ipcRenderer.invoke('resize-views'),
   newConversation: (id) => ipcRenderer.invoke('new-conversation', id),
   deleteConversation: (id) => ipcRenderer.invoke('delete-conversation', id),
+  switchModel: (id, modelId) => ipcRenderer.invoke('switch-model', id, modelId),
 
   // Messaging
   sendMessage: (text) => ipcRenderer.invoke('send-message', text),

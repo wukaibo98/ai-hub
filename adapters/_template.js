@@ -1,21 +1,15 @@
 /**
  * AI Hub Adapter Template
- * Copy this file and customize for new AI platforms.
  *
  * Each adapter exports:
- *   id        - unique identifier (matches filename without .js)
- *   name      - display name
- *   url       - the AI platform URL
- *   icon      - emoji icon
- *   color     - brand color hex
- *   sendScript(text)         - returns JS to inject to send a message
- *   observeScript            - JS string injected once to watch for reply updates
- *   newConversationScript()  - returns JS to start a new conversation
- *   deleteConversationScript() - returns JS to delete the current conversation
- *
- * Reply detection:
- *   Call window.__aiHub.sendReplyChunk(adapterId, text) when reply text changes.
- *   Call window.__aiHub.sendReplyDone(adapterId) when streaming completes.
+ *   id, name, url, icon, color
+ *   models[]              - available models with { id, name, url? }
+ *   defaultModel          - default model id
+ *   switchModelScript(id) - returns JS to switch model in the UI
+ *   newConversationScript()
+ *   deleteConversationScript()
+ *   sendScript(text)
+ *   observeScript
  */
 
 module.exports = {
@@ -25,17 +19,43 @@ module.exports = {
   icon: '💡',
   color: '#ff6600',
 
+  // ── Model Definitions ────────────────────────────
+  // Each model can optionally have a unique URL.
+  // If no URL, switchModelScript handles UI-based switching.
+  models: [
+    { id: 'example-fast',  name: 'Example Fast' },
+    { id: 'example-pro',   name: 'Example Pro',  url: 'https://example.com/chat?model=pro' },
+  ],
+  defaultModel: 'example-fast',
+
+  switchModelScript(modelId) {
+    // Option A: If model has a URL, the app navigates automatically.
+    // Option B: Click through the UI to switch.
+    return `
+      (async () => {
+        const btn = document.querySelector('[class*="model"]');
+        if (btn) {
+          btn.click();
+          await new Promise(r => setTimeout(r, 500));
+          const options = document.querySelectorAll('[role="option"]');
+          for (const opt of options) {
+            if (opt.textContent.includes(${JSON.stringify(modelId)})) {
+              opt.click();
+              return;
+            }
+          }
+        }
+      })();
+    `;
+  },
+
+  // ── Conversation Management ──────────────────────
   newConversationScript() {
     return `
       (async () => {
-        // Option 1: Navigate to new conversation URL
-        // window.location.href = 'https://example.com/chat';
-
-        // Option 2: Click a "New Chat" button
-        const btn = document.querySelector('button.new-chat') ||
-                    [...document.querySelectorAll('button')].find(b =>
-                      b.textContent.trim().toLowerCase().includes('new chat')
-                    );
+        const btn = [...document.querySelectorAll('button')].find(b =>
+          b.textContent.trim().toLowerCase().includes('new chat')
+        );
         if (btn) btn.click();
       })();
     `;
@@ -44,43 +64,12 @@ module.exports = {
   deleteConversationScript() {
     return `
       (async () => {
-        try {
-          // Hover on conversation in sidebar to reveal menu
-          const items = document.querySelectorAll('.conversation-item');
-          if (items.length === 0) return;
-
-          const firstItem = items[0];
-          firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-          await new Promise(r => setTimeout(r, 500));
-
-          // Click more options
-          const moreBtn = firstItem.querySelector('button[aria-label="More"]');
-          if (moreBtn) {
-            moreBtn.click();
-            await new Promise(r => setTimeout(r, 300));
-          }
-
-          // Click delete
-          const deleteBtn = [...document.querySelectorAll('button, [role="menuitem"]')].find(b =>
-            b.textContent.trim().toLowerCase().includes('delete')
-          );
-          if (deleteBtn) {
-            deleteBtn.click();
-            await new Promise(r => setTimeout(r, 500));
-
-            // Confirm
-            const confirmBtn = [...document.querySelectorAll('button')].find(b =>
-              b.textContent.trim().toLowerCase() === 'confirm'
-            );
-            if (confirmBtn) confirmBtn.click();
-          }
-        } catch(e) {
-          console.error('AI Hub delete error:', e);
-        }
+        // Hover → more menu → delete → confirm
       })();
     `;
   },
 
+  // ── Send & Observe ───────────────────────────────
   sendScript(text) {
     const escaped = JSON.stringify(text);
     return `

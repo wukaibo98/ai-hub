@@ -5,57 +5,74 @@ module.exports = {
   icon: '🤖',
   color: '#10a37f',
 
-  newConversationScript() {
+  models: [
+    { id: 'gpt-4o',       name: 'GPT-4o',       url: 'https://chatgpt.com/?model=gpt-4o' },
+    { id: 'gpt-4o-mini',  name: 'GPT-4o Mini',   url: 'https://chatgpt.com/?model=gpt-4o-mini' },
+    { id: 'o3',           name: 'o3',             url: 'https://chatgpt.com/?model=o3' },
+    { id: 'o4-mini',      name: 'o4-mini',        url: 'https://chatgpt.com/?model=o4-mini' },
+    { id: 'gpt-4.5',      name: 'GPT-4.5',        url: 'https://chatgpt.com/?model=gpt-4.5' },
+  ],
+  defaultModel: 'gpt-4o',
+
+  switchModelScript(modelId) {
     return `
       (async () => {
-        // Navigate to new conversation
-        window.location.href = 'https://chatgpt.com';
+        // ChatGPT: click the model selector at the top
+        const modelBtn = document.querySelector('[data-testid="model-switcher"]') ||
+                         document.querySelector('button[class*="model"]') ||
+                         [...document.querySelectorAll('button')].find(b =>
+                           b.textContent.match(/GPT|o[34]|gpt/i)
+                         );
+        if (modelBtn) {
+          modelBtn.click();
+          await new Promise(r => setTimeout(r, 500));
+          // Find and click the target model option
+          const targetId = ${JSON.stringify(modelId)};
+          const options = document.querySelectorAll('[role="option"], [role="menuitem"], [data-testid*="model"]');
+          for (const opt of options) {
+            const text = opt.textContent.trim().toLowerCase();
+            if (text.includes(targetId.replace(/-/g, ' ').toLowerCase()) ||
+                text.includes(targetId.toLowerCase())) {
+              opt.click();
+              return;
+            }
+          }
+        }
       })();
     `;
+  },
+
+  newConversationScript() {
+    return `(async () => { window.location.href = 'https://chatgpt.com'; })();`;
   },
 
   deleteConversationScript() {
     return `
       (async () => {
         try {
-          // Click the conversation options menu (three dots or hover menu)
           const nav = document.querySelector('nav');
           if (!nav) return;
-
-          // Find the active/current conversation item
           const items = nav.querySelectorAll('a[href*="/c/"]');
           if (items.length === 0) return;
-
-          // Hover over the first conversation to reveal the menu
           const firstItem = items[0];
           firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
           firstItem.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-
           await new Promise(r => setTimeout(r, 500));
-
-          // Find and click the delete button
           const deleteBtn = document.querySelector('[data-testid="delete-conversation-button"]') ||
                            document.querySelector('button[aria-label="Delete conversation"]') ||
-                           [...document.querySelectorAll('button')].find(b => {
-                             const label = b.getAttribute('aria-label') || '';
-                             return label.toLowerCase().includes('delete');
-                           });
-
+                           [...document.querySelectorAll('button')].find(b =>
+                             (b.getAttribute('aria-label') || '').toLowerCase().includes('delete')
+                           );
           if (deleteBtn) {
             deleteBtn.click();
             await new Promise(r => setTimeout(r, 500));
-
-            // Confirm deletion
             const confirmBtn = document.querySelector('button[data-testid="confirm-delete"]') ||
                               [...document.querySelectorAll('button')].find(b =>
-                                b.textContent.trim().toLowerCase() === 'delete' ||
-                                b.textContent.trim().toLowerCase() === 'confirm'
+                                b.textContent.trim().toLowerCase() === 'delete'
                               );
             if (confirmBtn) confirmBtn.click();
           }
-        } catch(e) {
-          console.error('AI Hub delete error (ChatGPT):', e);
-        }
+        } catch(e) { console.error('AI Hub delete error (ChatGPT):', e); }
       })();
     `;
   },
@@ -74,24 +91,16 @@ module.exports = {
           };
           check();
         });
-
         try {
           const ta = await waitFor('#prompt-textarea');
           ta.focus();
-          const text = ${escaped};
-          document.execCommand('insertText', false, text);
+          document.execCommand('insertText', false, ${escaped});
           await new Promise(r => setTimeout(r, 500));
-
           const sendBtn = document.querySelector('[data-testid="send-button"]') ||
                           document.querySelector('button[aria-label="Send prompt"]');
-          if (sendBtn && !sendBtn.disabled) {
-            sendBtn.click();
-          } else {
-            ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
-          }
-        } catch(e) {
-          console.error('AI Hub send error:', e);
-        }
+          if (sendBtn && !sendBtn.disabled) sendBtn.click();
+          else ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }));
+        } catch(e) { console.error('AI Hub send error:', e); }
       })();
     `;
   },
@@ -103,35 +112,20 @@ module.exports = {
       const ADAPTER_ID = 'chatgpt';
       let lastText = '';
       let debounceTimer = null;
-
       function getLatestReply() {
         const msgs = document.querySelectorAll('[data-message-author-role="assistant"]');
-        if (msgs.length === 0) return '';
-        return msgs[msgs.length - 1].innerText || '';
+        return msgs.length === 0 ? '' : msgs[msgs.length - 1].innerText || '';
       }
-
       function checkForUpdates() {
         const text = getLatestReply();
-        if (text && text !== lastText) {
-          lastText = text;
-          if (window.__aiHub) window.__aiHub.sendReplyChunk(ADAPTER_ID, text);
-        }
+        if (text && text !== lastText) { lastText = text; if (window.__aiHub) window.__aiHub.sendReplyChunk(ADAPTER_ID, text); }
       }
-
-      const observer = new MutationObserver(() => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(checkForUpdates, 300);
-      });
-      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-
-      const streamObserver = new MutationObserver(() => {
-        const stopBtn = document.querySelector('[data-testid="stop-button"]') ||
-                        document.querySelector('button[aria-label="Stop generating"]');
-        if (!stopBtn && lastText) {
-          setTimeout(() => { if (window.__aiHub) window.__aiHub.sendReplyDone(ADAPTER_ID); }, 500);
-        }
-      });
-      streamObserver.observe(document.body, { childList: true, subtree: true });
+      new MutationObserver(() => { clearTimeout(debounceTimer); debounceTimer = setTimeout(checkForUpdates, 300); })
+        .observe(document.body, { childList: true, subtree: true, characterData: true });
+      new MutationObserver(() => {
+        const stopBtn = document.querySelector('[data-testid="stop-button"]') || document.querySelector('button[aria-label="Stop generating"]');
+        if (!stopBtn && lastText) setTimeout(() => { if (window.__aiHub) window.__aiHub.sendReplyDone(ADAPTER_ID); }, 500);
+      }).observe(document.body, { childList: true, subtree: true });
     })();
   `
 };

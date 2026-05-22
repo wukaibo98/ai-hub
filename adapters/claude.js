@@ -5,21 +5,50 @@ module.exports = {
   icon: '🧠',
   color: '#d97706',
 
+  models: [
+    { id: 'claude-sonnet-4-20250514',  name: 'Claude Sonnet 4' },
+    { id: 'claude-opus-4-20250514',    name: 'Claude Opus 4' },
+    { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
+    { id: 'claude-3-5-haiku-20241022',  name: 'Claude 3.5 Haiku' },
+  ],
+  defaultModel: 'claude-sonnet-4-20250514',
+
+  switchModelScript(modelId) {
+    return `
+      (async () => {
+        // Claude: click the model selector in the header area
+        const modelBtn = document.querySelector('[data-testid="model-selector"]') ||
+                         document.querySelector('button[class*="model"]') ||
+                         [...document.querySelectorAll('button')].find(b =>
+                           b.textContent.match(/claude|sonnet|opus|haiku/i)
+                         );
+        if (modelBtn) {
+          modelBtn.click();
+          await new Promise(r => setTimeout(r, 500));
+          const targetId = ${JSON.stringify(modelId)};
+          const options = document.querySelectorAll('[role="option"], [role="menuitem"], [data-value]');
+          for (const opt of options) {
+            const val = opt.getAttribute('data-value') || opt.textContent.trim().toLowerCase();
+            if (val.includes(targetId) || targetId.includes(val.replace(/\\s+/g, '-'))) {
+              opt.click();
+              return;
+            }
+          }
+        }
+      })();
+    `;
+  },
+
   newConversationScript() {
     return `
       (async () => {
-        // Click the "New chat" button
         const newBtn = document.querySelector('button[aria-label="New chat"]') ||
                        document.querySelector('a[href="/new"]') ||
                        [...document.querySelectorAll('button')].find(b =>
-                         b.textContent.trim().toLowerCase().includes('new chat') ||
-                         b.textContent.trim().toLowerCase().includes('new conversation')
+                         b.textContent.trim().toLowerCase().includes('new chat')
                        );
-        if (newBtn) {
-          newBtn.click();
-        } else {
-          window.location.href = 'https://claude.ai/new';
-        }
+        if (newBtn) newBtn.click();
+        else window.location.href = 'https://claude.ai/new';
       })();
     `;
   },
@@ -28,42 +57,28 @@ module.exports = {
     return `
       (async () => {
         try {
-          // Hover on the current conversation in sidebar to reveal menu
           const sidebarItems = document.querySelectorAll('[data-testid="conversation-item"], nav a[href*="/chat/"]');
           if (sidebarItems.length === 0) return;
-
           const firstItem = sidebarItems[0];
           firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
           firstItem.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
           await new Promise(r => setTimeout(r, 500));
-
-          // Click the more options button
           const moreBtn = document.querySelector('button[aria-label="More"]') ||
                          document.querySelector('button[aria-label="Options"]') ||
                          firstItem.querySelector('button');
-          if (moreBtn) {
-            moreBtn.click();
-            await new Promise(r => setTimeout(r, 300));
-          }
-
-          // Find and click delete
+          if (moreBtn) { moreBtn.click(); await new Promise(r => setTimeout(r, 300)); }
           const deleteBtn = [...document.querySelectorAll('button, [role="menuitem"]')].find(b =>
             b.textContent.trim().toLowerCase().includes('delete')
           );
           if (deleteBtn) {
             deleteBtn.click();
             await new Promise(r => setTimeout(r, 500));
-
-            // Confirm
             const confirmBtn = [...document.querySelectorAll('button')].find(b =>
-              b.textContent.trim().toLowerCase() === 'delete' ||
-              b.textContent.trim().toLowerCase() === 'confirm'
+              b.textContent.trim().toLowerCase() === 'delete' || b.textContent.trim().toLowerCase() === 'confirm'
             );
             if (confirmBtn) confirmBtn.click();
           }
-        } catch(e) {
-          console.error('AI Hub delete error (Claude):', e);
-        }
+        } catch(e) { console.error('AI Hub delete error (Claude):', e); }
       })();
     `;
   },
@@ -82,23 +97,18 @@ module.exports = {
           };
           check();
         });
-
         try {
           const ta = await waitFor('[contenteditable="true"]');
           ta.focus();
           const pm = document.querySelector('.ProseMirror');
           const target = pm || ta;
-          const raw = ${escaped};
           target.focus();
-          document.execCommand('insertText', false, raw);
+          document.execCommand('insertText', false, ${escaped});
           await new Promise(r => setTimeout(r, 500));
-
           const sendBtn = document.querySelector('button[aria-label="Send Message"]') ||
                           document.querySelector('button[aria-label="Send"]');
           if (sendBtn && !sendBtn.disabled) sendBtn.click();
-        } catch(e) {
-          console.error('AI Hub send error (Claude):', e);
-        }
+        } catch(e) { console.error('AI Hub send error (Claude):', e); }
       })();
     `;
   },
@@ -110,37 +120,23 @@ module.exports = {
       const ADAPTER_ID = 'claude';
       let lastText = '';
       let debounceTimer = null;
-
       function getLatestReply() {
         let msgs = document.querySelectorAll('[data-is-streaming]');
         if (msgs.length === 0) msgs = document.querySelectorAll('.font-claude-message');
         if (msgs.length > 0) return msgs[msgs.length - 1].innerText || '';
         const turns = document.querySelectorAll('[data-testid="assistant-turn"]');
-        if (turns.length > 0) return turns[turns.length - 1].innerText || '';
-        return '';
+        return turns.length > 0 ? turns[turns.length - 1].innerText || '' : '';
       }
-
       function checkForUpdates() {
         const text = getLatestReply();
-        if (text && text !== lastText) {
-          lastText = text;
-          if (window.__aiHub) window.__aiHub.sendReplyChunk(ADAPTER_ID, text);
-        }
+        if (text && text !== lastText) { lastText = text; if (window.__aiHub) window.__aiHub.sendReplyChunk(ADAPTER_ID, text); }
       }
-
-      const observer = new MutationObserver(() => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(checkForUpdates, 300);
-      });
-      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-
-      const streamObserver = new MutationObserver(() => {
+      new MutationObserver(() => { clearTimeout(debounceTimer); debounceTimer = setTimeout(checkForUpdates, 300); })
+        .observe(document.body, { childList: true, subtree: true, characterData: true });
+      new MutationObserver(() => {
         const streaming = document.querySelector('[data-is-streaming]');
-        if (!streaming && lastText) {
-          setTimeout(() => { if (window.__aiHub) window.__aiHub.sendReplyDone(ADAPTER_ID); }, 500);
-        }
-      });
-      streamObserver.observe(document.body, { childList: true, subtree: true });
+        if (!streaming && lastText) setTimeout(() => { if (window.__aiHub) window.__aiHub.sendReplyDone(ADAPTER_ID); }, 500);
+      }).observe(document.body, { childList: true, subtree: true });
     })();
   `
 };

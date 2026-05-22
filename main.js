@@ -177,6 +177,17 @@ function getAdapterById(id) {
   return adapterMap[id];
 }
 
+function getAdapterUrl(adapterId) {
+  const adapter = getAdapterById(adapterId);
+  if (!adapter) return '';
+  const modelId = config.adapters?.[adapterId]?.model;
+  if (modelId && adapter.models) {
+    const model = adapter.models.find(m => m.id === modelId);
+    if (model && model.url) return model.url;
+  }
+  return adapter.url;
+}
+
 function positionView(adapterId) {
   const view = webviews[adapterId];
   if (!view || !mainWindow || mainWindow.isDestroyed()) return;
@@ -212,7 +223,7 @@ function showView(adapterId) {
   if (!webviews[adapterId]) {
     const adapter = getAdapterById(adapterId);
     if (!adapter) return;
-    createWebview(adapterId, adapter.url);
+    createWebview(adapterId, getAdapterUrl(adapterId));
   }
 
   try {
@@ -233,7 +244,7 @@ async function sendMessage(adapterId, text) {
 
   let view = webviews[adapterId];
   if (!view) {
-    view = createWebview(adapterId, adapter.url);
+    view = createWebview(adapterId, getAdapterUrl(adapterId));
     // Wait for page to load with timeout
     await new Promise((resolve) => {
       const timeout = setTimeout(resolve, 5000);
@@ -274,7 +285,14 @@ ipcMain.handle('save-config', (event, newConfig) => {
   return config;
 });
 
-ipcMain.handle('get-adapters', () => loadAdapters());
+ipcMain.handle('get-adapters', () => {
+  const adapters = loadAdapters();
+  // Attach current model selection to each adapter
+  return adapters.map(a => ({
+    ...a,
+    currentModel: config.adapters?.[a.id]?.model || a.defaultModel || null
+  }));
+});
 
 ipcMain.handle('get-enabled-adapters', () => {
   const adapters = loadAdapters();
@@ -356,6 +374,32 @@ ipcMain.handle('delete-conversation', async (event, adapterId) => {
   } catch (e) {
     console.error(`Delete conversation failed for ${adapterId}:`, e.message);
   }
+});
+
+ipcMain.handle('switch-model', async (event, adapterId, modelId) => {
+  const adapter = getAdapterById(adapterId);
+  if (!adapter) return;
+
+  // Save model selection to config
+  if (!config.adapters) config.adapters = {};
+  if (!config.adapters[adapterId]) config.adapters[adapterId] = {};
+  config.adapters[adapterId].model = modelId;
+  saveConfig(config);
+
+  // If model has a specific URL, reload the webview with it
+  const model = adapter.models?.find(m => m.id === modelId);
+  if (model && model.url) {
+    const view = webviews[adapterId];
+    if (view) {
+      try {
+        view.webContents.loadURL(model.url);
+      } catch (e) {
+        console.error(`Model switch URL load failed for ${adapterId}:`, e.message);
+      }
+    }
+  }
+
+  return config;
 });
 
 ipcMain.handle('resize-views', () => {
