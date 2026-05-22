@@ -29,7 +29,9 @@ module.exports = {
           const pm = document.querySelector('.ProseMirror');
           const target = pm || ta;
 
-          target.innerHTML = '<p>' + ${escaped} + '</p>';
+          // Escape HTML entities to prevent XSS
+          const safeText = ${escaped}.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          target.innerHTML = '<p>' + safeText + '</p>';
           target.dispatchEvent(new InputEvent('input', { bubbles: true }));
 
           await new Promise(r => setTimeout(r, 300));

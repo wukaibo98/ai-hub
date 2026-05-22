@@ -1,4 +1,4 @@
-const { app, BrowserWindow, BrowserView, ipcMain, session, Menu, shell, dialog } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, Menu, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -31,7 +31,7 @@ let replyBuffers = {};   // { adapterId: accumulated text }
 function loadAdapters() {
   const adaptersDir = path.join(__dirname, 'adapters');
   const adapters = [];
-  const files = fs.readdirSync(adaptersDir).filter(f => f.endsWith('.js'));
+  const files = fs.readdirSync(adaptersDir).filter(f => f.endsWith('.js') && !f.startsWith('_'));
   for (const file of files) {
     try {
       const adapter = require(path.join(adaptersDir, file));
@@ -129,7 +129,7 @@ function createWebview(adapterId, url) {
     }
   });
 
-  mainWindow.addBrowserView(view);
+  // Don't add to window here — showView() handles that
   view.webContents.loadURL(url);
 
   // Inject reply observer after page loads
@@ -287,11 +287,15 @@ ipcMain.handle('resize-views', () => {
 // Reply chunks from webview preload
 ipcMain.on('webview-reply-chunk', (event, adapterId, text) => {
   replyBuffers[adapterId] = text;
-  mainWindow.webContents.send('reply-chunk', adapterId, text);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('reply-chunk', adapterId, text);
+  }
 });
 
 ipcMain.on('webview-reply-done', (event, adapterId) => {
-  mainWindow.webContents.send('reply-done', adapterId);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('reply-done', adapterId);
+  }
 });
 
 // ── App Lifecycle ───────────────────────────────────────
