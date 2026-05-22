@@ -47,30 +47,43 @@ let adapterMap = null;
 
 function loadAdapters(forceReload = false) {
   const adaptersDir = path.join(__dirname, 'adapters');
+
+  // Ensure adapters directory exists
+  if (!fs.existsSync(adaptersDir)) {
+    console.error('Adapters directory not found:', adaptersDir);
+    adapterMap = {};
+    return [];
+  }
+
   const adapters = [];
   const files = fs.readdirSync(adaptersDir).filter(f => f.endsWith('.js') && !f.startsWith('_'));
-
-  // Clear require cache when force-reloading
-  if (forceReload) {
-    for (const file of files) {
-      const fullPath = path.join(adaptersDir, file);
-      delete require.cache[require.resolve(fullPath)];
-    }
-  }
 
   for (const file of files) {
     try {
       const fullPath = path.join(adaptersDir, file);
-      // Always clear cache for fresh reads (hot-reload)
-      delete require.cache[require.resolve(fullPath)];
+
+      // Clear require cache for hot-reload
+      try {
+        const resolved = require.resolve(fullPath);
+        delete require.cache[resolved];
+      } catch (_) {
+        // Module not yet loaded, that's fine
+      }
+
       const adapter = require(fullPath);
-      adapter._file = file; // track source file
-      adapters.push(adapter);
+      if (adapter && adapter.id) {
+        adapter._file = file;
+        adapters.push(adapter);
+      } else {
+        console.warn(`Adapter ${file} missing required 'id' field`);
+      }
     } catch (e) {
-      console.error(`Failed to load adapter ${file}:`, e);
+      console.error(`Failed to load adapter ${file}:`, e.message);
     }
   }
+
   adapterMap = Object.fromEntries(adapters.map(a => [a.id, a]));
+  console.log(`Loaded ${adapters.length} adapters: ${adapters.map(a => a.id).join(', ')}`);
   return adapters;
 }
 
@@ -329,24 +342,26 @@ ipcMain.handle('save-config', (event, newConfig) => {
 });
 
 ipcMain.handle('get-adapters', () => {
-  const adapters = loadAdapters();
-  // Define group order
-  const groupOrder = { domestic: 0, international: 1, custom: 2 };
-  // Sort by group, then by sortOrder within group, then by name
-  adapters.sort((a, b) => {
-    const ga = groupOrder[a.group] ?? 99;
-    const gb = groupOrder[b.group] ?? 99;
-    if (ga !== gb) return ga - gb;
-    const sa = a.sortOrder ?? 999;
-    const sb = b.sortOrder ?? 999;
-    if (sa !== sb) return sa - sb;
-    return (a.name || '').localeCompare(b.name || '');
-  });
-  // Attach current model selection to each adapter
-  return adapters.map(a => ({
-    ...a,
-    currentModel: config.adapters?.[a.id]?.model || a.defaultModel || null
-  }));
+  try {
+    const adapters = loadAdapters();
+    const groupOrder = { domestic: 0, international: 1, custom: 2 };
+    adapters.sort((a, b) => {
+      const ga = groupOrder[a.group] ?? 99;
+      const gb = groupOrder[b.group] ?? 99;
+      if (ga !== gb) return ga - gb;
+      const sa = a.sortOrder ?? 999;
+      const sb = b.sortOrder ?? 999;
+      if (sa !== sb) return sa - sb;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    return adapters.map(a => ({
+      ...a,
+      currentModel: config.adapters?.[a.id]?.model || a.defaultModel || null
+    }));
+  } catch (e) {
+    console.error('get-adapters error:', e);
+    return [];
+  }
 });
 
 ipcMain.handle('get-enabled-adapters', () => {

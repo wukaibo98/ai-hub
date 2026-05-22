@@ -13,6 +13,15 @@
   "build": {
     "appId": "com.aihub.app",
     "productName": "AI Hub",
+    "files": [
+      "main.js",
+      "preload.js",
+      "preload-webview.js",
+      "config-default.json",
+      "adapters/**/*",
+      "renderer/**/*",
+      "node_modules/**/*"
+    ],
     "mac": {
       "target": "dmg"
     }
