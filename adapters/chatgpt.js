@@ -24,11 +24,12 @@ module.exports = {
           const ta = await waitFor('#prompt-textarea');
           ta.focus();
 
-          // Use InputEvent for React compatibility
-          ta.textContent = ${escaped};
-          ta.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ${escaped} }));
+          // Use execCommand for proper React/ProseMirror compatibility
+          const text = ${escaped};
+          document.execCommand('insertText', false, text);
 
-          await new Promise(r => setTimeout(r, 300));
+          // Wait for React state update (send button enable)
+          await new Promise(r => setTimeout(r, 500));
 
           // Find and click send button
           const sendBtn = document.querySelector('[data-testid="send-button"]') ||

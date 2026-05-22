@@ -24,19 +24,10 @@ module.exports = {
           const ta = await waitFor('textarea, [contenteditable="true"]');
           ta.focus();
 
-          if (ta.tagName === 'TEXTAREA' || ta.tagName === 'INPUT') {
-            // React-compatible value setter
-            const setter = Object.getOwnPropertyDescriptor(
-              window.HTMLTextAreaElement.prototype, 'value'
-            ).set;
-            setter.call(ta, ${escaped});
-            ta.dispatchEvent(new Event('input', { bubbles: true }));
-          } else {
-            ta.textContent = ${escaped};
-            ta.dispatchEvent(new InputEvent('input', { bubbles: true }));
-          }
+          // execCommand works for both textarea and contenteditable
+          document.execCommand('insertText', false, ${escaped});
 
-          await new Promise(r => setTimeout(r, 300));
+          await new Promise(r => setTimeout(r, 500));
 
           const sendBtn = document.querySelector('div[role="button"][aria-disabled="false"]') ||
                           document.querySelector('button[type="submit"]');

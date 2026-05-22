@@ -29,22 +29,12 @@ module.exports = {
           const pm = document.querySelector('.ProseMirror');
           const target = pm || ta;
 
-          // Use clipboard API for safe text insertion (avoids innerHTML XSS)
+          // Use execCommand for reliable text insertion
           const raw = ${escaped};
           target.focus();
-          const dt = new DataTransfer();
-          dt.setData('text/plain', raw);
-          const pasteEvent = new ClipboardEvent('paste', {
-            bubbles: true, cancelable: true, clipboardData: dt
-          });
-          target.dispatchEvent(pasteEvent);
-          // Fallback: if paste didn't work, use insertText command
-          if (!target.textContent.includes(raw.substring(0, 20))) {
-            document.execCommand('insertText', false, raw);
-          }
-          target.dispatchEvent(new InputEvent('input', { bubbles: true }));
+          document.execCommand('insertText', false, raw);
 
-          await new Promise(r => setTimeout(r, 300));
+          await new Promise(r => setTimeout(r, 500));
 
           const sendBtn = document.querySelector('button[aria-label="Send Message"]') ||
                           document.querySelector('button[aria-label="Send"]');

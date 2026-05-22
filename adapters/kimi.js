@@ -23,10 +23,9 @@ module.exports = {
         try {
           const ta = await waitFor('[contenteditable="true"], textarea');
           ta.focus();
-          ta.textContent = ${escaped};
-          ta.dispatchEvent(new InputEvent('input', { bubbles: true }));
+          document.execCommand('insertText', false, ${escaped});
 
-          await new Promise(r => setTimeout(r, 300));
+          await new Promise(r => setTimeout(r, 500));
 
           const sendBtn = document.querySelector('button[data-testid="send-button"]') ||
                           document.querySelector('[aria-label="发送"]');

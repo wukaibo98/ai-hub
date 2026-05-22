@@ -25,19 +25,8 @@ module.exports = {
           const ta = await waitFor('textarea, [contenteditable="true"], .chat-input textarea, .input-area textarea, [role="textbox"]');
           ta.focus();
 
-          if (ta.tagName === 'TEXTAREA' || ta.tagName === 'INPUT') {
-            // Native input approach
-            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-              window.HTMLTextAreaElement.prototype, 'value'
-            ).set;
-            nativeInputValueSetter.call(ta, ${escaped});
-            ta.dispatchEvent(new Event('input', { bubbles: true }));
-            ta.dispatchEvent(new Event('change', { bubbles: true }));
-          } else {
-            // Contenteditable approach
-            ta.textContent = ${escaped};
-            ta.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: ${escaped} }));
-          }
+          // execCommand works for both textarea and contenteditable
+          document.execCommand('insertText', false, ${escaped});
 
           await new Promise(r => setTimeout(r, 500));
 
