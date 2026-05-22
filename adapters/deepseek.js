@@ -5,6 +5,62 @@ module.exports = {
   icon: '🔍',
   color: '#4d6bfe',
 
+  newConversationScript() {
+    return `
+      (async () => {
+        // Click "New Chat" button in sidebar
+        const newBtn = document.querySelector('a[href="/"]') ||
+                       [...document.querySelectorAll('div[role="button"], button, a')].find(b =>
+                         b.textContent.trim().includes('新对话') ||
+                         b.textContent.trim().toLowerCase().includes('new chat')
+                       );
+        if (newBtn) {
+          newBtn.click();
+        } else {
+          window.location.href = 'https://chat.deepseek.com';
+        }
+      })();
+    `;
+  },
+
+  deleteConversationScript() {
+    return `
+      (async () => {
+        try {
+          // Hover on conversation in sidebar
+          const items = document.querySelectorAll('.ds-conversation-item, [class*="conversation"]');
+          if (items.length === 0) return;
+
+          const firstItem = items[0];
+          firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+          firstItem.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+          await new Promise(r => setTimeout(r, 500));
+
+          // Find delete button or context menu
+          const deleteBtn = document.querySelector('[aria-label="Delete"]') ||
+                           [...document.querySelectorAll('button, div[role="button"]')].find(b =>
+                             b.textContent.trim().includes('删除') ||
+                             b.textContent.trim().toLowerCase().includes('delete')
+                           );
+          if (deleteBtn) {
+            deleteBtn.click();
+            await new Promise(r => setTimeout(r, 500));
+
+            // Confirm
+            const confirmBtn = [...document.querySelectorAll('button')].find(b =>
+              b.textContent.trim().includes('确认') ||
+              b.textContent.trim().toLowerCase() === 'delete' ||
+              b.textContent.trim().toLowerCase() === 'confirm'
+            );
+            if (confirmBtn) confirmBtn.click();
+          }
+        } catch(e) {
+          console.error('AI Hub delete error (DeepSeek):', e);
+        }
+      })();
+    `;
+  },
+
   sendScript(text) {
     const escaped = JSON.stringify(text);
     return `
@@ -23,10 +79,7 @@ module.exports = {
         try {
           const ta = await waitFor('textarea, [contenteditable="true"]');
           ta.focus();
-
-          // execCommand works for both textarea and contenteditable
           document.execCommand('insertText', false, ${escaped});
-
           await new Promise(r => setTimeout(r, 500));
 
           const sendBtn = document.querySelector('div[role="button"][aria-disabled="false"]') ||
@@ -43,7 +96,6 @@ module.exports = {
     (function() {
       if (window.__aiHubObserver) return;
       window.__aiHubObserver = true;
-
       const ADAPTER_ID = 'deepseek';
       let lastText = '';
       let debounceTimer = null;
@@ -66,21 +118,16 @@ module.exports = {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(checkForUpdates, 300);
       });
-
       observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
-      // Detect streaming end
       const streamObserver = new MutationObserver(() => {
         const stopBtn = document.querySelector('[aria-label="Stop"]') ||
                         document.querySelector('.ds-loading') ||
                         document.querySelector('[class*="stop"]');
         if (!stopBtn && lastText) {
-          setTimeout(() => {
-            if (window.__aiHub) window.__aiHub.sendReplyDone(ADAPTER_ID);
-          }, 500);
+          setTimeout(() => { if (window.__aiHub) window.__aiHub.sendReplyDone(ADAPTER_ID); }, 500);
         }
       });
-
       streamObserver.observe(document.body, { childList: true, subtree: true });
     })();
   `

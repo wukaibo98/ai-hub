@@ -8,8 +8,10 @@
  *   url       - the AI platform URL
  *   icon      - emoji icon
  *   color     - brand color hex
- *   sendScript(text) - returns JS to inject into the webview to send a message
- *   observeScript    - JS string injected once to watch for reply updates
+ *   sendScript(text)         - returns JS to inject to send a message
+ *   observeScript            - JS string injected once to watch for reply updates
+ *   newConversationScript()  - returns JS to start a new conversation
+ *   deleteConversationScript() - returns JS to delete the current conversation
  *
  * Reply detection:
  *   Call window.__aiHub.sendReplyChunk(adapterId, text) when reply text changes.
@@ -22,6 +24,62 @@ module.exports = {
   url: 'https://example.com/chat',
   icon: '💡',
   color: '#ff6600',
+
+  newConversationScript() {
+    return `
+      (async () => {
+        // Option 1: Navigate to new conversation URL
+        // window.location.href = 'https://example.com/chat';
+
+        // Option 2: Click a "New Chat" button
+        const btn = document.querySelector('button.new-chat') ||
+                    [...document.querySelectorAll('button')].find(b =>
+                      b.textContent.trim().toLowerCase().includes('new chat')
+                    );
+        if (btn) btn.click();
+      })();
+    `;
+  },
+
+  deleteConversationScript() {
+    return `
+      (async () => {
+        try {
+          // Hover on conversation in sidebar to reveal menu
+          const items = document.querySelectorAll('.conversation-item');
+          if (items.length === 0) return;
+
+          const firstItem = items[0];
+          firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+          await new Promise(r => setTimeout(r, 500));
+
+          // Click more options
+          const moreBtn = firstItem.querySelector('button[aria-label="More"]');
+          if (moreBtn) {
+            moreBtn.click();
+            await new Promise(r => setTimeout(r, 300));
+          }
+
+          // Click delete
+          const deleteBtn = [...document.querySelectorAll('button, [role="menuitem"]')].find(b =>
+            b.textContent.trim().toLowerCase().includes('delete')
+          );
+          if (deleteBtn) {
+            deleteBtn.click();
+            await new Promise(r => setTimeout(r, 500));
+
+            // Confirm
+            const confirmBtn = [...document.querySelectorAll('button')].find(b =>
+              b.textContent.trim().toLowerCase() === 'confirm'
+            );
+            if (confirmBtn) confirmBtn.click();
+          }
+        } catch(e) {
+          console.error('AI Hub delete error:', e);
+        }
+      })();
+    `;
+  },
 
   sendScript(text) {
     const escaped = JSON.stringify(text);

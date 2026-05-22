@@ -44,20 +44,53 @@ function renderSidebar() {
 
   adapters.forEach(adapter => {
     const enabled = config.adapters?.[adapter.id]?.enabled !== false;
-    const item = document.createElement('div');
-    item.className = `adapter-item${activeAdapter === adapter.id ? ' active' : ''}`;
-    item.dataset.id = adapter.id;
+    const isActive = activeAdapter === adapter.id;
 
-    item.innerHTML = `
-      <div class="adapter-icon" style="background:${adapter.color}22; color:${adapter.color}">
-        ${adapter.icon}
+    const section = document.createElement('div');
+    section.className = 'ai-section';
+    section.dataset.id = adapter.id;
+
+    section.innerHTML = `
+      <div class="ai-section-header${isActive ? ' active' : ''}" data-id="${adapter.id}">
+        <div class="ai-section-icon" style="background:${adapter.color}22; color:${adapter.color}">
+          ${adapter.icon}
+        </div>
+        <span class="ai-section-name">${adapter.name}</span>
+        <div class="ai-section-actions">
+          <button class="ai-action-btn" data-action="new" title="New conversation">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="ai-action-btn danger" data-action="delete" title="Delete conversation">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+        <div class="ai-section-status${enabled ? '' : ' disabled'}"></div>
       </div>
-      <span class="adapter-name">${adapter.name}</span>
-      <div class="adapter-status${enabled ? '' : ' disabled'}"></div>
     `;
 
-    item.addEventListener('click', () => selectAdapter(adapter.id));
-    list.appendChild(item);
+    // Click header to select adapter
+    const header = section.querySelector('.ai-section-header');
+    header.addEventListener('click', (e) => {
+      // Don't select if clicking action buttons
+      if (e.target.closest('.ai-action-btn')) return;
+      selectAdapter(adapter.id);
+    });
+
+    // New conversation button
+    section.querySelector('[data-action="new"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.aiHub.newConversation(adapter.id);
+    });
+
+    // Delete conversation button
+    section.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(`Delete current conversation in ${adapter.name}?`)) {
+        window.aiHub.deleteConversation(adapter.id);
+      }
+    });
+
+    list.appendChild(section);
   });
 }
 
@@ -70,7 +103,7 @@ function selectAdapter(id) {
   document.getElementById('current-adapter-name').textContent = adapter.name;
 
   // Update sidebar active state
-  document.querySelectorAll('.adapter-item').forEach(el => {
+  document.querySelectorAll('.ai-section-header').forEach(el => {
     el.classList.toggle('active', el.dataset.id === id);
   });
 
@@ -118,11 +151,11 @@ function updateReply(adapterId, text) {
   }
 
   // Update sidebar badge
-  const sidebarItem = document.querySelector(`.adapter-item[data-id="${adapterId}"]`);
-  if (sidebarItem && !sidebarItem.querySelector('.reply-badge')) {
+  const sidebarSection = document.querySelector(`.ai-section[data-id="${adapterId}"]`);
+  if (sidebarSection && !sidebarSection.querySelector('.reply-badge')) {
     const badge = document.createElement('div');
     badge.className = 'reply-badge';
-    sidebarItem.appendChild(badge);
+    sidebarSection.querySelector('.ai-section-header').appendChild(badge);
   }
 }
 

@@ -5,6 +5,67 @@ module.exports = {
   icon: '🟠',
   color: '#ff6900',
 
+  newConversationScript() {
+    return `
+      (async () => {
+        // MiMo Studio: navigate to new conversation
+        const newBtn = [...document.querySelectorAll('button, a, div[role="button"]')].find(b =>
+          b.textContent.trim().includes('新对话') ||
+          b.textContent.trim().includes('新建') ||
+          b.textContent.trim().toLowerCase().includes('new chat') ||
+          b.getAttribute('aria-label')?.includes('新对话')
+        );
+        if (newBtn) {
+          newBtn.click();
+        } else {
+          window.location.href = 'https://aistudio.xiaomimimo.com/#/c';
+        }
+      })();
+    `;
+  },
+
+  deleteConversationScript() {
+    return `
+      (async () => {
+        try {
+          const items = document.querySelectorAll('[class*="conversation"], [class*="chat-item"], [class*="session"]');
+          if (items.length === 0) return;
+
+          const firstItem = items[0];
+          firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+          firstItem.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+          await new Promise(r => setTimeout(r, 500));
+
+          const moreBtn = firstItem.querySelector('button') ||
+                         document.querySelector('button[aria-label="更多"]') ||
+                         document.querySelector('button[aria-label="More"]');
+          if (moreBtn) {
+            moreBtn.click();
+            await new Promise(r => setTimeout(r, 300));
+          }
+
+          const deleteBtn = [...document.querySelectorAll('button, [role="menuitem"], div[role="button"]')].find(b =>
+            b.textContent.trim().includes('删除') ||
+            b.textContent.trim().toLowerCase().includes('delete')
+          );
+          if (deleteBtn) {
+            deleteBtn.click();
+            await new Promise(r => setTimeout(r, 500));
+
+            const confirmBtn = [...document.querySelectorAll('button')].find(b =>
+              b.textContent.trim().includes('确认') ||
+              b.textContent.trim().includes('删除') ||
+              b.textContent.trim().toLowerCase() === 'confirm'
+            );
+            if (confirmBtn) confirmBtn.click();
+          }
+        } catch(e) {
+          console.error('AI Hub delete error (MiMo):', e);
+        }
+      })();
+    `;
+  },
+
   sendScript(text) {
     const escaped = JSON.stringify(text);
     return `
@@ -21,16 +82,11 @@ module.exports = {
         });
 
         try {
-          // MiMo Studio uses textarea or contenteditable
           const ta = await waitFor('textarea, [contenteditable="true"], .chat-input textarea, .input-area textarea, [role="textbox"]');
           ta.focus();
-
-          // execCommand works for both textarea and contenteditable
           document.execCommand('insertText', false, ${escaped});
-
           await new Promise(r => setTimeout(r, 500));
 
-          // Try multiple selectors for send button
           const sendBtn =
             document.querySelector('button[type="submit"]') ||
             document.querySelector('[aria-label="发送"]') ||
@@ -38,7 +94,6 @@ module.exports = {
             document.querySelector('.send-btn') ||
             document.querySelector('button.send') ||
             document.querySelector('[data-testid="send-button"]') ||
-            // Look for any button with send-like text
             [...document.querySelectorAll('button')].find(b => {
               const t = b.textContent.trim().toLowerCase();
               return t === '发送' || t === 'send' || t === '➤';
@@ -47,7 +102,6 @@ module.exports = {
           if (sendBtn && !sendBtn.disabled) {
             sendBtn.click();
           } else {
-            // Fallback: try Enter key
             ta.dispatchEvent(new KeyboardEvent('keydown', {
               key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true
             }));
@@ -63,39 +117,22 @@ module.exports = {
     (function() {
       if (window.__aiHubObserver) return;
       window.__aiHubObserver = true;
-
       const ADAPTER_ID = 'mimo';
       let lastText = '';
       let debounceTimer = null;
 
       function getLatestReply() {
-        // Try multiple selectors for AI response
         const selectors = [
-          '.message-ai',
-          '.ai-message',
-          '.assistant-message',
-          '[data-role="assistant"]',
-          '.chat-message--assistant',
-          '.message-bot',
-          '.bot-message',
-          // Generic: look for markdown rendered content in last message group
-          '.markdown-body',
-          '.message-content'
+          '.message-ai', '.ai-message', '.assistant-message',
+          '[data-role="assistant"]', '.chat-message--assistant',
+          '.message-bot', '.bot-message', '.markdown-body', '.message-content'
         ];
-
         for (const sel of selectors) {
           const msgs = document.querySelectorAll(sel);
-          if (msgs.length > 0) {
-            return msgs[msgs.length - 1].innerText || '';
-          }
+          if (msgs.length > 0) return msgs[msgs.length - 1].innerText || '';
         }
-
-        // Fallback: find the last message-like element
         const allMsgs = document.querySelectorAll('[class*="message"]');
-        if (allMsgs.length >= 2) {
-          return allMsgs[allMsgs.length - 1].innerText || '';
-        }
-
+        if (allMsgs.length >= 2) return allMsgs[allMsgs.length - 1].innerText || '';
         return '';
       }
 
@@ -103,25 +140,16 @@ module.exports = {
         const text = getLatestReply();
         if (text && text !== lastText) {
           lastText = text;
-          if (window.__aiHub) {
-            window.__aiHub.sendReplyChunk(ADAPTER_ID, text);
-          }
+          if (window.__aiHub) window.__aiHub.sendReplyChunk(ADAPTER_ID, text);
         }
       }
 
-      // Watch DOM mutations
       const observer = new MutationObserver(() => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(checkForUpdates, 300);
       });
+      observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        characterData: true
-      });
-
-      // Detect streaming end by watching for loading/typing indicators
       const streamObserver = new MutationObserver(() => {
         const loading =
           document.querySelector('.loading') ||
@@ -129,16 +157,10 @@ module.exports = {
           document.querySelector('[class*="loading"]') ||
           document.querySelector('[class*="typing"]') ||
           document.querySelector('.cursor-blink');
-
         if (!loading && lastText) {
-          setTimeout(() => {
-            if (window.__aiHub) {
-              window.__aiHub.sendReplyDone(ADAPTER_ID);
-            }
-          }, 800);
+          setTimeout(() => { if (window.__aiHub) window.__aiHub.sendReplyDone(ADAPTER_ID); }, 800);
         }
       });
-
       streamObserver.observe(document.body, { childList: true, subtree: true });
     })();
   `

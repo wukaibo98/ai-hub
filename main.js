@@ -334,6 +334,30 @@ ipcMain.handle('reload-view', (event, adapterId) => {
   }
 });
 
+ipcMain.handle('new-conversation', async (event, adapterId) => {
+  const adapter = getAdapterById(adapterId);
+  if (!adapter || !adapter.newConversationScript) return;
+  const view = webviews[adapterId];
+  if (!view) return;
+  try {
+    await view.webContents.executeJavaScript(adapter.newConversationScript());
+  } catch (e) {
+    console.error(`New conversation failed for ${adapterId}:`, e.message);
+  }
+});
+
+ipcMain.handle('delete-conversation', async (event, adapterId) => {
+  const adapter = getAdapterById(adapterId);
+  if (!adapter || !adapter.deleteConversationScript) return;
+  const view = webviews[adapterId];
+  if (!view) return;
+  try {
+    await view.webContents.executeJavaScript(adapter.deleteConversationScript());
+  } catch (e) {
+    console.error(`Delete conversation failed for ${adapterId}:`, e.message);
+  }
+});
+
 ipcMain.handle('resize-views', () => {
   if (activeView) positionView(activeView);
 });

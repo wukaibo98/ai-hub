@@ -95,45 +95,82 @@ body.light {
   padding: 4px 8px;
 }
 
-.adapter-item {
+/* ── AI Section ───────────────────────────────────── */
+.ai-section {
+  margin-bottom: 4px;
+}
+
+.ai-section-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 8px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.15s ease;
-  margin-bottom: 2px;
   position: relative;
 }
 
-.adapter-item:hover { background: var(--bg-hover); }
-.adapter-item.active {
+.ai-section-header:hover { background: var(--bg-hover); }
+.ai-section-header.active {
   background: var(--bg-tertiary);
   border: 1px solid var(--border);
 }
 
-.adapter-icon {
-  width: 28px;
-  height: 28px;
+.ai-section-icon {
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
-.adapter-name {
+.ai-section-name {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.adapter-status {
+.ai-section-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.ai-section-header:hover .ai-section-actions {
+  opacity: 1;
+}
+
+.ai-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.ai-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ai-action-btn.danger:hover {
+  color: var(--error);
+}
+
+.ai-section-status {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -141,7 +178,7 @@ body.light {
   flex-shrink: 0;
 }
 
-.adapter-status.disabled {
+.ai-section-status.disabled {
   background: var(--text-muted);
 }
 
