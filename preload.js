@@ -1,5 +1,17 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Track registered listeners to prevent accumulation on reload
+const registeredListeners = {};
+
+function safeOn(channel, callback) {
+  // Remove previous listener for this channel to prevent duplicates
+  if (registeredListeners[channel]) {
+    ipcRenderer.removeListener(channel, registeredListeners[channel]);
+  }
+  registeredListeners[channel] = callback;
+  ipcRenderer.on(channel, callback);
+}
+
 contextBridge.exposeInMainWorld('aiHub', {
   // Config
   getConfig: () => ipcRenderer.invoke('get-config'),
@@ -20,13 +32,13 @@ contextBridge.exposeInMainWorld('aiHub', {
   sendToAdapter: (id, text) => ipcRenderer.invoke('send-to-adapter', id, text),
   getReplyBuffer: (id) => ipcRenderer.invoke('get-reply-buffer', id),
 
-  // Events
-  onViewChanged: (cb) => ipcRenderer.on('view-changed', (e, id) => cb(id)),
-  onReplyStart: (cb) => ipcRenderer.on('reply-start', (e, id) => cb(id)),
-  onReplyChunk: (cb) => ipcRenderer.on('reply-chunk', (e, id, text) => cb(id, text)),
-  onReplyDone: (cb) => ipcRenderer.on('reply-done', (e, id) => cb(id)),
-  onReplyError: (cb) => ipcRenderer.on('reply-error', (e, id, msg) => cb(id, msg)),
-  onOpenSettings: (cb) => ipcRenderer.on('open-settings', () => cb()),
+  // Events (deduplicated)
+  onViewChanged: (cb) => safeOn('view-changed', (e, id) => cb(id)),
+  onReplyStart: (cb) => safeOn('reply-start', (e, id) => cb(id)),
+  onReplyChunk: (cb) => safeOn('reply-chunk', (e, id, text) => cb(id, text)),
+  onReplyDone: (cb) => safeOn('reply-done', (e, id) => cb(id)),
+  onReplyError: (cb) => safeOn('reply-error', (e, id, msg) => cb(id, msg)),
+  onOpenSettings: (cb) => safeOn('open-settings', () => cb()),
 
   // External
   openExternal: (url) => ipcRenderer.invoke('open-external', url),

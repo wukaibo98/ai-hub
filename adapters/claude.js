@@ -29,10 +29,19 @@ module.exports = {
           const pm = document.querySelector('.ProseMirror');
           const target = pm || ta;
 
-          // Escape HTML entities to prevent XSS
+          // Use clipboard API for safe text insertion (avoids innerHTML XSS)
           const raw = ${escaped};
-          const safeText = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          target.innerHTML = '<p>' + safeText + '</p>';
+          target.focus();
+          const dt = new DataTransfer();
+          dt.setData('text/plain', raw);
+          const pasteEvent = new ClipboardEvent('paste', {
+            bubbles: true, cancelable: true, clipboardData: dt
+          });
+          target.dispatchEvent(pasteEvent);
+          // Fallback: if paste didn't work, use insertText command
+          if (!target.textContent.includes(raw.substring(0, 20))) {
+            document.execCommand('insertText', false, raw);
+          }
           target.dispatchEvent(new InputEvent('input', { bubbles: true }));
 
           await new Promise(r => setTimeout(r, 300));
@@ -59,9 +68,12 @@ module.exports = {
       let debounceTimer = null;
 
       function getLatestReply() {
-        // Claude's assistant messages
-        const msgs = document.querySelectorAll('[data-is-streaming]') ||
-                     document.querySelectorAll('.font-claude-message');
+        // Claude's assistant messages - NodeList is always truthy even when empty,
+        // so || doesn't work as fallback. Check length instead.
+        let msgs = document.querySelectorAll('[data-is-streaming]');
+        if (msgs.length === 0) {
+          msgs = document.querySelectorAll('.font-claude-message');
+        }
         if (msgs.length > 0) {
           return msgs[msgs.length - 1].innerText || '';
         }

@@ -28,7 +28,11 @@ let activeView = null;
 let replyBuffers = {};   // { adapterId: accumulated text }
 
 // ── Adapter Loader ──────────────────────────────────────
+let adapterCache = null;
+let adapterMap = null;
+
 function loadAdapters() {
+  if (adapterCache) return adapterCache;
   const adaptersDir = path.join(__dirname, 'adapters');
   const adapters = [];
   const files = fs.readdirSync(adaptersDir).filter(f => f.endsWith('.js') && !f.startsWith('_'));
@@ -40,6 +44,8 @@ function loadAdapters() {
       console.error(`Failed to load adapter ${file}:`, e);
     }
   }
+  adapterCache = adapters;
+  adapterMap = Object.fromEntries(adapters.map(a => [a.id, a]));
   return adapters;
 }
 
@@ -102,8 +108,18 @@ function createWindow() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 
   mainWindow.on('closed', () => {
+    // Destroy all BrowserViews to prevent memory leaks
+    Object.keys(webviews).forEach(id => {
+      try {
+        if (webviews[id] && !webviews[id].isDestroyed()) {
+          webviews[id].webContents.destroy();
+        }
+      } catch {}
+    });
     mainWindow = null;
     webviews = {};
+    viewBounds = {};
+    activeView = null;
   });
 }
 
@@ -157,8 +173,8 @@ function injectObserver(adapterId, view) {
 }
 
 function getAdapterById(id) {
-  const adapters = loadAdapters();
-  return adapters.find(a => a.id === id);
+  if (!adapterMap) loadAdapters();
+  return adapterMap[id];
 }
 
 function positionView(adapterId) {

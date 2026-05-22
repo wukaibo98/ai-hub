@@ -69,6 +69,20 @@ module.exports = {
       });
 
       observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+
+      // Detect streaming end
+      const streamObserver = new MutationObserver(() => {
+        const streaming = document.querySelector('[data-testid="loading"]') ||
+                          document.querySelector('.loading') ||
+                          document.querySelector('[class*="typing"]');
+        if (!streaming && lastText) {
+          setTimeout(() => {
+            if (window.__aiHub) window.__aiHub.sendReplyDone(ADAPTER_ID);
+          }, 500);
+        }
+      });
+
+      streamObserver.observe(document.body, { childList: true, subtree: true });
     })();
   `
 };
