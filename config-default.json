@@ -10,6 +10,8 @@
   "ui": {
     "theme": "dark",
     "sidebarWidth": 220,
-    "showReplyPanel": true
+    "showReplyPanel": true,
+    "sendShortcut": "cmd+enter",
+    "fontSize": 14
   }
 }

@@ -295,6 +295,15 @@ async function sendMessage(adapterId, text) {
 ipcMain.handle('get-config', () => config);
 
 ipcMain.handle('save-config', (event, newConfig) => {
+  if (newConfig === null) {
+    // Reset: delete config file and reload defaults
+    try { fs.unlinkSync(CONFIG_PATH); } catch {}
+    config = loadConfig();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setBackgroundColor('#0a0a0a');
+    }
+    return config;
+  }
   config = deepMerge(config, newConfig);
   saveConfig(config);
   // Update window background for theme

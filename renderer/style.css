@@ -20,6 +20,8 @@
   --input-height: 80px;
   --radius: 10px;
   --radius-sm: 6px;
+  --font-size-input: 14px;
+  --font-size-reply: 13px;
 }
 
 body {
@@ -493,7 +495,7 @@ body.light {
 
 .reply-card-body {
   padding: 12px;
-  font-size: 13px;
+  font-size: var(--font-size-reply);
   line-height: 1.6;
   color: var(--text-secondary);
   max-height: 300px;
@@ -543,7 +545,7 @@ body.light {
   border-radius: var(--radius);
   padding: 10px 14px;
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--font-size-input);
   font-family: inherit;
   resize: none;
   outline: none;
@@ -690,6 +692,69 @@ body.light {
 
 .settings-adapter-info h4 { font-size: 14px; font-weight: 500; }
 .settings-adapter-info p { font-size: 12px; color: var(--text-muted); }
+
+/* Settings Row */
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-row:last-child { border-bottom: none; }
+
+.setting-info h4 { font-size: 14px; font-weight: 500; }
+.setting-info p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.setting-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.settings-select {
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 160px;
+}
+
+.settings-select:focus {
+  border-color: var(--accent);
+}
+
+.settings-select option {
+  background: var(--bg-secondary);
+  color: var(--text);
+}
+
+.settings-reset-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--error);
+  border-radius: var(--radius-sm);
+  color: var(--error);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.settings-reset-btn:hover {
+  background: var(--error);
+  color: white;
+}
 
 /* Toggle Switch */
 .toggle {

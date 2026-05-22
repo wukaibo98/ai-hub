@@ -4,12 +4,33 @@ let config = {};
 let activeAdapter = null;
 let replyBuffers = {};  // { adapterId: text }
 
+// ── Font Size ───────────────────────────────────────────
+function applyFontSize(size) {
+  document.documentElement.style.setProperty('--font-size-input', size + 'px');
+  document.documentElement.style.setProperty('--font-size-reply', (size - 1) + 'px');
+}
+
+function updateSendShortcutHint() {
+  const btn = document.getElementById('btn-send');
+  const shortcut = config.ui?.sendShortcut || 'cmd+enter';
+  btn.title = shortcut === 'enter' ? 'Send (Enter)' : 'Send (Cmd+Enter)';
+}
+
+// ── Reset Config ────────────────────────────────────────
+async function resetConfig() {
+  if (!confirm('Reset all settings to defaults? This will reload the app.')) return;
+  await window.aiHub.saveConfig(null);  // signal to reset
+  location.reload();
+}
+
 // ── Init ────────────────────────────────────────────────
 async function init() {
   config = await window.aiHub.getConfig();
   adapters = await window.aiHub.getAdapters();
 
   applyTheme(config.ui?.theme || 'dark');
+  applyFontSize(config.ui?.fontSize || 14);
+  updateSendShortcutHint();
   renderSidebar();
   setupEvents();
   setupResize();
@@ -229,7 +250,10 @@ async function sendMessage() {
   document.getElementById('reply-cards').innerHTML = '';
   replyBuffers = {};
   document.querySelectorAll('.reply-badge').forEach(el => el.remove());
-  document.getElementById('reply-panel').classList.remove('hidden');
+
+  if (config.ui?.showReplyPanel !== false) {
+    document.getElementById('reply-panel').classList.remove('hidden');
+  }
 
   adapters.forEach(adapter => {
     const enabled = config.adapters?.[adapter.id]?.enabled !== false;
@@ -247,7 +271,16 @@ function setupEvents() {
 
   const input = document.getElementById('message-input');
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendMessage(); }
+    const shortcut = config.ui?.sendShortcut || 'cmd+enter';
+    if (shortcut === 'enter') {
+      // Enter to send, Shift+Enter for newline
+      if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault(); sendMessage();
+      }
+    } else {
+      // Cmd/Ctrl+Enter to send (default)
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendMessage(); }
+    }
   });
   input.addEventListener('input', () => autoResize(input));
 
@@ -294,6 +327,7 @@ function openSettings() {
   const container = document.getElementById('settings-adapters');
   container.innerHTML = '';
 
+  // ── Adapters Section ──
   adapters.forEach(adapter => {
     const enabled = config.adapters?.[adapter.id]?.enabled !== false;
     const div = document.createElement('div');
@@ -324,7 +358,102 @@ function openSettings() {
     container.appendChild(div);
   });
 
+  // ── General Section ──
+  const generalSection = document.getElementById('settings-general');
+  generalSection.innerHTML = '';
+
+  // Send shortcut
+  const shortcutRow = createSettingRow('Send shortcut', 'How to send messages');
+  const shortcutSelect = document.createElement('select');
+  shortcutSelect.className = 'settings-select';
+  shortcutSelect.innerHTML = `
+    <option value="cmd+enter" ${(config.ui?.sendShortcut || 'cmd+enter') === 'cmd+enter' ? 'selected' : ''}>⌘/Ctrl + Enter</option>
+    <option value="enter" ${config.ui?.sendShortcut === 'enter' ? 'selected' : ''}>Enter (Shift+Enter for newline)</option>
+  `;
+  shortcutSelect.addEventListener('change', async () => {
+    if (!config.ui) config.ui = {};
+    config.ui.sendShortcut = shortcutSelect.value;
+    config = await window.aiHub.saveConfig(config);
+    updateSendShortcutHint();
+  });
+  shortcutRow.querySelector('.setting-control').appendChild(shortcutSelect);
+  generalSection.appendChild(shortcutRow);
+
+  // Auto-show reply panel
+  const replyRow = createSettingRow('Auto-show replies', 'Open reply panel when sending');
+  const replyToggle = document.createElement('label');
+  replyToggle.className = 'toggle';
+  const showReply = config.ui?.showReplyPanel !== false;
+  replyToggle.innerHTML = `
+    <input type="checkbox" ${showReply ? 'checked' : ''}>
+    <span class="toggle-slider"></span>
+  `;
+  replyToggle.querySelector('input').addEventListener('change', async (e) => {
+    if (!config.ui) config.ui = {};
+    config.ui.showReplyPanel = e.target.checked;
+    config = await window.aiHub.saveConfig(config);
+  });
+  replyRow.querySelector('.setting-control').appendChild(replyToggle);
+  generalSection.appendChild(replyRow);
+
+  // Font size
+  const fontRow = createSettingRow('Font size', 'Message input and reply text size');
+  const fontSelect = document.createElement('select');
+  fontSelect.className = 'settings-select';
+  const currentSize = config.ui?.fontSize || 14;
+  [12, 13, 14, 15, 16].forEach(s => {
+    fontSelect.innerHTML += `<option value="${s}" ${s === currentSize ? 'selected' : ''}>${s}px</option>`;
+  });
+  fontSelect.addEventListener('change', async () => {
+    if (!config.ui) config.ui = {};
+    config.ui.fontSize = parseInt(fontSelect.value);
+    config = await window.aiHub.saveConfig(config);
+    applyFontSize(config.ui.fontSize);
+  });
+  fontRow.querySelector('.setting-control').appendChild(fontSelect);
+  generalSection.appendChild(fontRow);
+
+  // Theme
+  const themeRow = createSettingRow('Theme', 'Dark or light appearance');
+  const themeSelect = document.createElement('select');
+  themeSelect.className = 'settings-select';
+  const currentTheme = config.ui?.theme || 'dark';
+  themeSelect.innerHTML = `
+    <option value="dark" ${currentTheme === 'dark' ? 'selected' : ''}>Dark</option>
+    <option value="light" ${currentTheme === 'light' ? 'selected' : ''}>Light</option>
+  `;
+  themeSelect.addEventListener('change', async () => {
+    if (!config.ui) config.ui = {};
+    config.ui.theme = themeSelect.value;
+    config = await window.aiHub.saveConfig(config);
+    applyTheme(config.ui.theme);
+  });
+  themeRow.querySelector('.setting-control').appendChild(themeSelect);
+  generalSection.appendChild(themeRow);
+
+  // ── Reset Button ──
+  const resetSection = document.getElementById('settings-reset');
+  resetSection.innerHTML = '';
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'settings-reset-btn';
+  resetBtn.textContent = 'Reset All Settings';
+  resetBtn.addEventListener('click', resetConfig);
+  resetSection.appendChild(resetBtn);
+
   modal.classList.remove('hidden');
+}
+
+function createSettingRow(title, desc) {
+  const row = document.createElement('div');
+  row.className = 'settings-row';
+  row.innerHTML = `
+    <div class="setting-info">
+      <h4>${title}</h4>
+      <p>${desc}</p>
+    </div>
+    <div class="setting-control"></div>
+  `;
+  return row;
 }
 
 function closeSettings() {
