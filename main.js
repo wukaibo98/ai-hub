@@ -195,6 +195,10 @@ function getAdapterById(id) {
 function getAdapterUrl(adapterId) {
   const adapter = getAdapterById(adapterId);
   if (!adapter) return '';
+  // Custom adapter uses user-configured URL
+  if (adapterId === 'custom') {
+    return config.adapters?.custom?.url || '';
+  }
   const modelId = config.adapters?.[adapterId]?.model;
   if (modelId && adapter.models) {
     const model = adapter.models.find(m => m.id === modelId);
@@ -316,6 +320,15 @@ ipcMain.handle('save-config', (event, newConfig) => {
 
 ipcMain.handle('get-adapters', () => {
   const adapters = loadAdapters();
+  // Define group order
+  const groupOrder = { domestic: 0, international: 1, custom: 2 };
+  // Sort by group, then by name within group
+  adapters.sort((a, b) => {
+    const ga = groupOrder[a.group] ?? 99;
+    const gb = groupOrder[b.group] ?? 99;
+    if (ga !== gb) return ga - gb;
+    return (a.name || '').localeCompare(b.name || '');
+  });
   // Attach current model selection to each adapter
   return adapters.map(a => ({
     ...a,
@@ -327,7 +340,9 @@ ipcMain.handle('get-enabled-adapters', () => {
   const adapters = loadAdapters();
   return adapters.filter(a => {
     const cfg = config.adapters?.[a.id];
-    return cfg ? cfg.enabled !== false : true;
+    if (cfg ? cfg.enabled === false : false) return false;
+    if (a.id === 'custom' && !config.adapters?.custom?.url) return false;
+    return true;
   });
 });
 
@@ -338,7 +353,10 @@ ipcMain.handle('show-view', (event, adapterId) => {
 ipcMain.handle('send-message', async (event, text) => {
   const enabledAdapters = loadAdapters().filter(a => {
     const cfg = config.adapters?.[a.id];
-    return cfg ? cfg.enabled !== false : true;
+    if (cfg ? cfg.enabled === false : false) return false;
+    // Skip custom adapter if no URL configured
+    if (a.id === 'custom' && !config.adapters?.custom?.url) return false;
+    return true;
   });
 
   // Send to all enabled adapters in parallel
@@ -363,6 +381,15 @@ ipcMain.handle('toggle-adapter', (event, adapterId, enabled) => {
   if (!config.adapters) config.adapters = {};
   if (!config.adapters[adapterId]) config.adapters[adapterId] = {};
   config.adapters[adapterId].enabled = enabled;
+  saveConfig(config);
+  return config;
+});
+
+ipcMain.handle('set-custom-url', (event, url) => {
+  if (!config.adapters) config.adapters = {};
+  if (!config.adapters.custom) config.adapters.custom = {};
+  config.adapters.custom.url = url;
+  if (url) config.adapters.custom.enabled = true;
   saveConfig(config);
   return config;
 });

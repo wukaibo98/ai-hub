@@ -1,11 +1,12 @@
 {
   "adapters": {
-    "chatgpt":  { "enabled": true, "model": "gpt-4o" },
-    "claude":   { "enabled": true, "model": "claude-sonnet-4-20250514" },
-    "gemini":   { "enabled": true, "model": "gemini-2.5-pro" },
+    "mimo":     { "enabled": true, "model": "mimo-v2" },
     "deepseek": { "enabled": true, "model": "deepseek-chat" },
     "kimi":     { "enabled": true, "model": "kimi-k2" },
-    "mimo":     { "enabled": true, "model": "mimo-v2" }
+    "minimax":  { "enabled": true, "model": "minimax-abab7" },
+    "doubao":   { "enabled": true, "model": "doubao-pro" },
+    "chatgpt":  { "enabled": true, "model": "gpt-4o" },
+    "custom":   { "enabled": false, "url": "" }
   },
   "ui": {
     "theme": "dark",

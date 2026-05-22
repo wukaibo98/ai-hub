@@ -98,6 +98,20 @@ body.light {
 }
 
 /* ── AI Section ───────────────────────────────────── */
+.group-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  padding: 12px 10px 4px;
+  user-select: none;
+}
+
+.group-header:first-child {
+  padding-top: 4px;
+}
+
 .ai-section {
   margin-bottom: 4px;
 }
@@ -270,6 +284,29 @@ body.light {
   background: var(--bg-secondary);
   color: var(--text);
   padding: 4px 8px;
+}
+
+.ai-url-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.ai-url-input:focus {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.ai-url-input::placeholder {
+  color: var(--text-muted);
 }
 
 .reply-badge {

@@ -4,6 +4,7 @@ module.exports = {
   url: 'https://chatgpt.com',
   icon: '🤖',
   color: '#10a37f',
+  group: 'international',
 
   models: [
     { id: 'gpt-4o',       name: 'GPT-4o',       url: 'https://chatgpt.com/?model=gpt-4o' },

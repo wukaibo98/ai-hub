@@ -4,6 +4,7 @@ module.exports = {
   url: 'https://aistudio.xiaomimimo.com/#/c',
   icon: '🟠',
   color: '#ff6900',
+  group: 'domestic',
 
   models: [
     { id: 'mimo-v2',      name: 'MiMo v2',       url: 'https://aistudio.xiaomimimo.com/#/c' },

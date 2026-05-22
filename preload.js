@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('aiHub', {
   getAdapters: () => ipcRenderer.invoke('get-adapters'),
   getEnabledAdapters: () => ipcRenderer.invoke('get-enabled-adapters'),
   toggleAdapter: (id, enabled) => ipcRenderer.invoke('toggle-adapter', id, enabled),
+  setCustomUrl: (url) => ipcRenderer.invoke('set-custom-url', url),
 
   // Views
   showView: (id) => ipcRenderer.invoke('show-view', id),

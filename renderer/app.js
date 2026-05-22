@@ -58,105 +58,183 @@ function toggleTheme() {
 }
 
 // ── Sidebar ─────────────────────────────────────────────
+const GROUP_LABELS = {
+  domestic: '🇨🇳 国内',
+  international: '🌍 国外',
+  custom: '🔧 自定义'
+};
+
 function renderSidebar() {
   const list = document.getElementById('adapter-list');
   list.innerHTML = '';
 
+  // Group adapters
+  const groups = {};
   adapters.forEach(adapter => {
-    const enabled = config.adapters?.[adapter.id]?.enabled !== false;
-    const isActive = activeAdapter === adapter.id;
-    const currentModel = adapter.currentModel || adapter.defaultModel;
+    const group = adapter.group || 'other';
+    if (!groups[group]) groups[group] = [];
+    groups[group].push(adapter);
+  });
 
-    const section = document.createElement('div');
-    section.className = `ai-section${enabled ? '' : ' ai-section-disabled'}`;
-    section.dataset.id = adapter.id;
+  // Render in order
+  const groupOrder = ['domestic', 'international', 'custom'];
+  groupOrder.forEach(groupKey => {
+    const groupAdapters = groups[groupKey];
+    if (!groupAdapters || groupAdapters.length === 0) return;
 
-    // Model selector HTML
-    let modelSelectHTML = '';
-    if (adapter.models && adapter.models.length > 0) {
-      const options = adapter.models.map(m =>
-        `<option value="${m.id}" ${m.id === currentModel ? 'selected' : ''}>${m.name}</option>`
-      ).join('');
-      modelSelectHTML = `<select class="ai-model-select" data-adapter="${adapter.id}">${options}</select>`;
-    }
+    // Group header
+    const header = document.createElement('div');
+    header.className = 'group-header';
+    header.textContent = GROUP_LABELS[groupKey] || groupKey;
+    list.appendChild(header);
 
-    section.innerHTML = `
-      <div class="ai-section-header${isActive ? ' active' : ''}" data-id="${adapter.id}">
-        <div class="ai-section-icon" style="background:${adapter.color}22; color:${adapter.color}">
-          ${adapter.icon}
-        </div>
-        <span class="ai-section-name">${adapter.name}</span>
-        <label class="ai-section-toggle" title="${enabled ? 'Disable' : 'Enable'} ${adapter.name}">
-          <input type="checkbox" ${enabled ? 'checked' : ''} data-toggle="${adapter.id}">
-          <span class="ai-section-toggle-track"></span>
-        </label>
+    // Adapter items
+    groupAdapters.forEach(adapter => {
+      const section = buildAdapterSection(adapter);
+      list.appendChild(section);
+    });
+  });
+
+  // Any adapters without a recognized group
+  Object.keys(groups).forEach(groupKey => {
+    if (groupOrder.includes(groupKey)) return;
+    const header = document.createElement('div');
+    header.className = 'group-header';
+    header.textContent = GROUP_LABELS[groupKey] || groupKey;
+    list.appendChild(header);
+    groups[groupKey].forEach(adapter => {
+      list.appendChild(buildAdapterSection(adapter));
+    });
+  });
+}
+
+function buildAdapterSection(adapter) {
+  const enabled = config.adapters?.[adapter.id]?.enabled !== false;
+  const isActive = activeAdapter === adapter.id;
+  const currentModel = adapter.currentModel || adapter.defaultModel;
+  const isCustom = adapter.id === 'custom';
+
+  const section = document.createElement('div');
+  section.className = `ai-section${enabled ? '' : ' ai-section-disabled'}`;
+  section.dataset.id = adapter.id;
+
+  // Model selector or URL input for custom
+  let controlHTML = '';
+  if (isCustom) {
+    const customUrl = config.adapters?.custom?.url || '';
+    controlHTML = `<input class="ai-url-input" data-adapter="custom" placeholder="Enter URL..." value="${customUrl}" title="Custom website URL">`;
+  } else if (adapter.models && adapter.models.length > 0) {
+    const options = adapter.models.map(m =>
+      `<option value="${m.id}" ${m.id === currentModel ? 'selected' : ''}>${m.name}</option>`
+    ).join('');
+    controlHTML = `<select class="ai-model-select" data-adapter="${adapter.id}">${options}</select>`;
+  }
+
+  section.innerHTML = `
+    <div class="ai-section-header${isActive ? ' active' : ''}" data-id="${adapter.id}">
+      <div class="ai-section-icon" style="background:${adapter.color}22; color:${adapter.color}">
+        ${adapter.icon}
       </div>
-      <div class="ai-section-bar">
-        ${modelSelectHTML}
-        <div class="ai-section-actions">
-          <button class="ai-action-btn" data-action="login" title="Login / Open ${adapter.name}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-          </button>
-          <button class="ai-action-btn" data-action="new" title="New conversation">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-          <button class="ai-action-btn danger" data-action="delete" title="Delete conversation">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </button>
-        </div>
+      <span class="ai-section-name">${adapter.name}</span>
+      <label class="ai-section-toggle" title="${enabled ? 'Disable' : 'Enable'} ${adapter.name}">
+        <input type="checkbox" ${enabled ? 'checked' : ''} data-toggle="${adapter.id}">
+        <span class="ai-section-toggle-track"></span>
+      </label>
+    </div>
+    <div class="ai-section-bar">
+      ${controlHTML}
+      ${!isCustom ? `
+      <div class="ai-section-actions">
+        <button class="ai-action-btn" data-action="login" title="Login / Open ${adapter.name}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        </button>
+        <button class="ai-action-btn" data-action="new" title="New conversation">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="ai-action-btn danger" data-action="delete" title="Delete conversation">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
       </div>
-    `;
+      ` : ''}
+    </div>
+  `;
 
-    // Click header to select adapter
-    section.querySelector('.ai-section-header').addEventListener('click', (e) => {
-      if (e.target.closest('.ai-section-toggle') || e.target.closest('input[type="checkbox"]')) return;
+  // Click header to select adapter
+  section.querySelector('.ai-section-header').addEventListener('click', (e) => {
+    if (e.target.closest('.ai-section-toggle') || e.target.closest('input[type="checkbox"]')) return;
+    selectAdapter(adapter.id);
+  });
+
+  // Enable/disable toggle
+  const toggle = section.querySelector(`[data-toggle="${adapter.id}"]`);
+  toggle.addEventListener('change', async (e) => {
+    e.stopPropagation();
+    const on = e.target.checked;
+    config = await window.aiHub.toggleAdapter(adapter.id, on);
+    section.classList.toggle('ai-section-disabled', !on);
+  });
+  toggle.addEventListener('click', (e) => e.stopPropagation());
+
+  // Custom URL input
+  if (isCustom) {
+    const urlInput = section.querySelector('.ai-url-input');
+    let debounce = null;
+    urlInput.addEventListener('input', (e) => {
+      e.stopPropagation();
+      clearTimeout(debounce);
+      debounce = setTimeout(async () => {
+        config = await window.aiHub.setCustomUrl(urlInput.value.trim());
+      }, 500);
+    });
+    urlInput.addEventListener('click', (e) => {
+      e.stopPropagation();
       selectAdapter(adapter.id);
     });
+    urlInput.addEventListener('keydown', (e) => e.stopPropagation());
+  }
 
-    // Enable/disable toggle
-    const toggle = section.querySelector(`[data-toggle="${adapter.id}"]`);
-    toggle.addEventListener('change', async (e) => {
-      e.stopPropagation();
-      const on = e.target.checked;
-      config = await window.aiHub.toggleAdapter(adapter.id, on);
-      section.classList.toggle('ai-section-disabled', !on);
-    });
-    toggle.addEventListener('click', (e) => e.stopPropagation());
-
-    // Login button
-    section.querySelector('[data-action="login"]').addEventListener('click', (e) => {
+  // Login button
+  const loginBtn = section.querySelector('[data-action="login"]');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       selectAdapter(adapter.id);
     });
+  }
 
-    // New conversation
-    section.querySelector('[data-action="new"]').addEventListener('click', (e) => {
+  // New conversation
+  const newBtn = section.querySelector('[data-action="new"]');
+  if (newBtn) {
+    newBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       window.aiHub.newConversation(adapter.id);
     });
+  }
 
-    // Delete conversation
-    section.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+  // Delete conversation
+  const deleteBtn = section.querySelector('[data-action="delete"]');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (confirm(`Delete current conversation in ${adapter.name}?`)) {
         window.aiHub.deleteConversation(adapter.id);
       }
     });
+  }
 
-    // Model selector
-    const modelSelect = section.querySelector('.ai-model-select');
-    if (modelSelect) {
-      modelSelect.addEventListener('change', async (e) => {
-        e.stopPropagation();
-        const modelId = e.target.value;
-        config = await window.aiHub.switchModel(adapter.id, modelId);
-        adapter.currentModel = modelId;
-      });
-      modelSelect.addEventListener('click', (e) => e.stopPropagation());
-    }
+  // Model selector
+  const modelSelect = section.querySelector('.ai-model-select');
+  if (modelSelect) {
+    modelSelect.addEventListener('change', async (e) => {
+      e.stopPropagation();
+      const modelId = e.target.value;
+      config = await window.aiHub.switchModel(adapter.id, modelId);
+      adapter.currentModel = modelId;
+    });
+    modelSelect.addEventListener('click', (e) => e.stopPropagation());
+  }
 
-    list.appendChild(section);
-  });
+  return section;
 }
 
 function selectAdapter(id) {
@@ -257,6 +335,8 @@ async function sendMessage() {
 
   adapters.forEach(adapter => {
     const enabled = config.adapters?.[adapter.id]?.enabled !== false;
+    // Skip custom adapter if no URL
+    if (adapter.id === 'custom' && !config.adapters?.custom?.url) return;
     if (enabled) renderReplyCard(adapter.id);
   });
 

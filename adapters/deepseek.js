@@ -4,6 +4,7 @@ module.exports = {
   url: 'https://chat.deepseek.com',
   icon: '🔍',
   color: '#4d6bfe',
+  group: 'domestic',
 
   models: [
     { id: 'deepseek-chat',    name: 'DeepSeek-V3',    url: 'https://chat.deepseek.com' },
