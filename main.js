@@ -289,7 +289,7 @@ async function sendMessage(adapterId, text) {
 ipcMain.handle('get-config', () => config);
 
 ipcMain.handle('save-config', (event, newConfig) => {
-  config = { ...config, ...newConfig };
+  config = deepMerge(config, newConfig);
   saveConfig(config);
   // Update window background for theme
   if (mainWindow && !mainWindow.isDestroyed()) {
