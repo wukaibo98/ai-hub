@@ -407,6 +407,16 @@ function openSettings() {
   const container = document.getElementById('settings-adapters');
   container.innerHTML = '';
 
+  // ── Tab switching ──
+  modal.querySelectorAll('.settings-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      modal.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+      modal.querySelectorAll('.settings-tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+  });
+
   // ── Adapters Section ──
   adapters.forEach(adapter => {
     const enabled = config.adapters?.[adapter.id]?.enabled !== false;
@@ -520,6 +530,9 @@ function openSettings() {
   resetBtn.addEventListener('click', resetConfig);
   resetSection.appendChild(resetBtn);
 
+  // ── Adapter Editor ──
+  initAdapterEditor();
+
   modal.classList.remove('hidden');
 }
 
@@ -548,6 +561,122 @@ function setupResize() {
     resizeTimer = setTimeout(() => { window.aiHub.resizeViews(); }, 16);
   });
   ro.observe(document.body);
+}
+
+// ── Adapter Editor ──────────────────────────────────────
+let editorCurrentFile = null;
+let editorDirty = false;
+
+async function initAdapterEditor() {
+  const select = document.getElementById('editor-file-select');
+  const editor = document.getElementById('adapter-code-editor');
+  const status = document.getElementById('editor-status');
+  const saveBtn = document.getElementById('btn-save-adapter');
+  const reloadBtn = document.getElementById('btn-reload-adapters');
+
+  // Load file list
+  let files = [];
+  try {
+    files = await window.aiHub.getAdapterFiles();
+  } catch (e) {
+    status.textContent = 'Failed to load adapter files';
+    status.className = 'editor-status error';
+    return;
+  }
+
+  // Populate select
+  select.innerHTML = '<option value="">-- Select a file --</option>';
+  files.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.file;
+    opt.textContent = `${f.isTemplate ? '📄 ' : '🤖 '}${f.file}`;
+    select.appendChild(opt);
+  });
+
+  // Reset state
+  editor.value = '';
+  editorCurrentFile = null;
+  editorDirty = false;
+  status.textContent = `${files.length} adapter file(s) found`;
+  status.className = 'editor-status info';
+
+  // File selection
+  select.onchange = async () => {
+    const fileName = select.value;
+    if (!fileName) {
+      editor.value = '';
+      editorCurrentFile = null;
+      return;
+    }
+
+    const file = files.find(f => f.file === fileName);
+    if (file) {
+      editor.value = file.content;
+      editorCurrentFile = fileName;
+      editorDirty = false;
+      status.textContent = `Loaded ${fileName}`;
+      status.className = 'editor-status success';
+    }
+  };
+
+  // Track changes
+  editor.oninput = () => {
+    editorDirty = true;
+  };
+
+  // Save
+  saveBtn.onclick = async () => {
+    if (!editorCurrentFile) {
+      status.textContent = 'No file selected';
+      status.className = 'editor-status error';
+      return;
+    }
+
+    const content = editor.value;
+    status.textContent = 'Saving...';
+    status.className = 'editor-status info';
+
+    const result = await window.aiHub.saveAdapterSource(editorCurrentFile, content);
+    if (result.ok) {
+      editorDirty = false;
+      status.textContent = `✅ Saved ${editorCurrentFile} — adapters reloaded`;
+      status.className = 'editor-status success';
+      // Refresh adapter list in the app
+      adapters = await window.aiHub.getAdapters();
+      renderSidebar();
+      // Update the local files cache
+      files = await window.aiHub.getAdapterFiles();
+    } else {
+      status.textContent = `❌ Error: ${result.error}`;
+      status.className = 'editor-status error';
+    }
+  };
+
+  // Reload all adapters
+  reloadBtn.onclick = async () => {
+    adapters = await window.aiHub.reloadAdapters();
+    renderSidebar();
+    files = await window.aiHub.getAdapterFiles();
+    status.textContent = '🔄 All adapters reloaded from disk';
+    status.className = 'editor-status success';
+  };
+
+  // Tab key support in editor
+  editor.onkeydown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+      editor.selectionStart = editor.selectionEnd = start + 2;
+      editorDirty = true;
+    }
+    // Ctrl/Cmd+S to save
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault();
+      saveBtn.click();
+    }
+  };
 }
 
 // ── Boot ────────────────────────────────────────────────

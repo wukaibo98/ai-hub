@@ -23,6 +23,13 @@ contextBridge.exposeInMainWorld('aiHub', {
   toggleAdapter: (id, enabled) => ipcRenderer.invoke('toggle-adapter', id, enabled),
   setCustomUrl: (url) => ipcRenderer.invoke('set-custom-url', url),
 
+  // Adapter file management (hot-reload)
+  getAdapterFiles: () => ipcRenderer.invoke('get-adapter-files'),
+  getAdapterSource: (fileName) => ipcRenderer.invoke('get-adapter-source', fileName),
+  saveAdapterSource: (fileName, content) => ipcRenderer.invoke('save-adapter-source', fileName, content),
+  deleteAdapterFile: (fileName) => ipcRenderer.invoke('delete-adapter-file', fileName),
+  reloadAdapters: () => ipcRenderer.invoke('reload-adapters'),
+
   // Views
   showView: (id) => ipcRenderer.invoke('show-view', id),
   reloadView: (id) => ipcRenderer.invoke('reload-view', id),

@@ -853,3 +853,111 @@ body.light {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Settings Tabs ────────────────────────────────── */
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.settings-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.settings-tab:hover { color: var(--text-secondary); }
+
+.settings-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.settings-tab-content { display: none; }
+.settings-tab-content.active { display: block; }
+
+/* ── Adapter Code Editor ──────────────────────────── */
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.editor-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.editor-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.editor-btn.save {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.editor-btn.save:hover {
+  background: var(--accent-hover);
+}
+
+.editor-status {
+  font-size: 12px;
+  margin-bottom: 8px;
+  min-height: 18px;
+  transition: color 0.15s;
+}
+
+.editor-status.success { color: var(--success); }
+.editor-status.error { color: var(--error); }
+.editor-status.info { color: var(--text-muted); }
+
+#adapter-code-editor {
+  width: 100%;
+  min-height: 400px;
+  max-height: 55vh;
+  padding: 14px;
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: #c9d1d9;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  tab-size: 2;
+  white-space: pre;
+  overflow: auto;
+}
+
+#adapter-code-editor:focus {
+  border-color: var(--accent);
+}
+
+body.light #adapter-code-editor {
+  background: #ffffff;
+  color: #24292e;
+  border-color: var(--border);
+}

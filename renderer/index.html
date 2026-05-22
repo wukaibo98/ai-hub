@@ -83,18 +83,38 @@
   <!-- Settings Modal -->
   <div id="settings-modal" class="modal hidden">
     <div class="modal-backdrop"></div>
-    <div class="modal-content">
+    <div class="modal-content" style="width:720px;max-width:90vw">
       <div class="modal-header">
         <h2>⚙️ Settings</h2>
         <button id="btn-close-settings" class="modal-close">✕</button>
       </div>
       <div class="modal-body">
-        <h3>Adapters</h3>
-        <p class="settings-desc">Toggle which AI platforms are active. Messages will be sent to all enabled adapters.</p>
-        <div id="settings-adapters"></div>
-        <h3 style="margin-top:24px">General</h3>
-        <div id="settings-general"></div>
-        <div id="settings-reset" style="margin-top:24px"></div>
+        <!-- Tab bar -->
+        <div class="settings-tabs">
+          <button class="settings-tab active" data-tab="general-settings">General</button>
+          <button class="settings-tab" data-tab="adapter-editor">Adapter Editor</button>
+        </div>
+
+        <!-- General settings tab -->
+        <div id="general-settings" class="settings-tab-content active">
+          <h3>Adapters</h3>
+          <p class="settings-desc">Toggle which AI platforms are active. Messages will be sent to all enabled adapters.</p>
+          <div id="settings-adapters"></div>
+          <h3 style="margin-top:24px">General</h3>
+          <div id="settings-general"></div>
+          <div id="settings-reset" style="margin-top:24px"></div>
+        </div>
+
+        <!-- Adapter editor tab -->
+        <div id="adapter-editor" class="settings-tab-content">
+          <div class="editor-toolbar">
+            <select id="editor-file-select" class="settings-select" style="min-width:200px"></select>
+            <button id="btn-save-adapter" class="editor-btn save">💾 Save</button>
+            <button id="btn-reload-adapters" class="editor-btn reload">🔄 Reload</button>
+          </div>
+          <div id="editor-status" class="editor-status"></div>
+          <textarea id="adapter-code-editor" spellcheck="false" placeholder="// Select an adapter file to edit..."></textarea>
+        </div>
       </div>
     </div>
   </div>

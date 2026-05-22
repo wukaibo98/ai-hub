@@ -43,23 +43,33 @@ let activeView = null;
 let replyBuffers = {};   // { adapterId: accumulated text }
 
 // ── Adapter Loader ──────────────────────────────────────
-let adapterCache = null;
 let adapterMap = null;
 
-function loadAdapters() {
-  if (adapterCache) return adapterCache;
+function loadAdapters(forceReload = false) {
   const adaptersDir = path.join(__dirname, 'adapters');
   const adapters = [];
   const files = fs.readdirSync(adaptersDir).filter(f => f.endsWith('.js') && !f.startsWith('_'));
+
+  // Clear require cache when force-reloading
+  if (forceReload) {
+    for (const file of files) {
+      const fullPath = path.join(adaptersDir, file);
+      delete require.cache[require.resolve(fullPath)];
+    }
+  }
+
   for (const file of files) {
     try {
-      const adapter = require(path.join(adaptersDir, file));
+      const fullPath = path.join(adaptersDir, file);
+      // Always clear cache for fresh reads (hot-reload)
+      delete require.cache[require.resolve(fullPath)];
+      const adapter = require(fullPath);
+      adapter._file = file; // track source file
       adapters.push(adapter);
     } catch (e) {
       console.error(`Failed to load adapter ${file}:`, e);
     }
   }
-  adapterCache = adapters;
   adapterMap = Object.fromEntries(adapters.map(a => [a.id, a]));
   return adapters;
 }
@@ -188,7 +198,7 @@ function injectObserver(adapterId, view) {
 }
 
 function getAdapterById(id) {
-  if (!adapterMap) loadAdapters();
+  loadAdapters(); // always fresh
   return adapterMap[id];
 }
 
@@ -487,6 +497,72 @@ ipcMain.handle('switch-model', async (event, adapterId, modelId) => {
 
 ipcMain.handle('resize-views', () => {
   if (activeView) positionView(activeView);
+});
+
+// ── Adapter Hot-Reload IPC ──────────────────────────────
+ipcMain.handle('get-adapter-files', () => {
+  const adaptersDir = path.join(__dirname, 'adapters');
+  const files = fs.readdirSync(adaptersDir).filter(f => f.endsWith('.js'));
+  return files.map(file => {
+    const fullPath = path.join(adaptersDir, file);
+    const content = fs.readFileSync(fullPath, 'utf8');
+    const isTemplate = file.startsWith('_');
+    return { file, content, isTemplate };
+  });
+});
+
+ipcMain.handle('get-adapter-source', (event, fileName) => {
+  const adaptersDir = path.join(__dirname, 'adapters');
+  const fullPath = path.join(adaptersDir, fileName);
+  if (!fullPath.startsWith(adaptersDir)) return null; // path traversal guard
+  try {
+    return fs.readFileSync(fullPath, 'utf8');
+  } catch (e) {
+    return null;
+  }
+});
+
+ipcMain.handle('save-adapter-source', (event, fileName, content) => {
+  const adaptersDir = path.join(__dirname, 'adapters');
+  const fullPath = path.join(adaptersDir, fileName);
+  if (!fullPath.startsWith(adaptersDir)) return { ok: false, error: 'Invalid path' };
+
+  // Validate syntax before saving
+  try {
+    // Quick syntax check by parsing as a module
+    const vm = require('vm');
+    new vm.Script(content, { filename: fileName });
+  } catch (e) {
+    return { ok: false, error: `Syntax error: ${e.message}` };
+  }
+
+  try {
+    fs.writeFileSync(fullPath, content, 'utf8');
+    // Force reload adapters
+    loadAdapters(true);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('delete-adapter-file', (event, fileName) => {
+  const adaptersDir = path.join(__dirname, 'adapters');
+  const fullPath = path.join(adaptersDir, fileName);
+  if (!fullPath.startsWith(adaptersDir)) return { ok: false, error: 'Invalid path' };
+  if (fileName.startsWith('_')) return { ok: false, error: 'Cannot delete template files' };
+  try {
+    fs.unlinkSync(fullPath);
+    loadAdapters(true);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('reload-adapters', () => {
+  loadAdapters(true);
+  return loadAdapters();
 });
 
 // Reply chunks from webview preload
