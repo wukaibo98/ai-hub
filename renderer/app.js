@@ -19,7 +19,6 @@ async function init() {
 function applyTheme(theme) {
   document.body.classList.toggle('light', theme === 'light');
   document.body.classList.toggle('dark', theme !== 'light');
-  // Update theme button icon
   const btn = document.getElementById('btn-theme');
   if (btn) {
     btn.innerHTML = theme === 'light'
@@ -48,10 +47,10 @@ function renderSidebar() {
     const currentModel = adapter.currentModel || adapter.defaultModel;
 
     const section = document.createElement('div');
-    section.className = 'ai-section';
+    section.className = `ai-section${enabled ? '' : ' ai-section-disabled'}`;
     section.dataset.id = adapter.id;
 
-    // Build model selector HTML
+    // Model selector HTML
     let modelSelectHTML = '';
     if (adapter.models && adapter.models.length > 0) {
       const options = adapter.models.map(m =>
@@ -66,33 +65,56 @@ function renderSidebar() {
           ${adapter.icon}
         </div>
         <span class="ai-section-name">${adapter.name}</span>
+        <label class="ai-section-toggle" title="${enabled ? 'Disable' : 'Enable'} ${adapter.name}">
+          <input type="checkbox" ${enabled ? 'checked' : ''} data-toggle="${adapter.id}">
+          <span class="ai-section-toggle-track"></span>
+        </label>
+      </div>
+      <div class="ai-section-bar">
+        ${modelSelectHTML}
         <div class="ai-section-actions">
+          <button class="ai-action-btn" data-action="login" title="Login / Open ${adapter.name}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          </button>
           <button class="ai-action-btn" data-action="new" title="New conversation">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
           <button class="ai-action-btn danger" data-action="delete" title="Delete conversation">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>
         </div>
-        <div class="ai-section-status${enabled ? '' : ' disabled'}"></div>
       </div>
-      ${modelSelectHTML}
     `;
 
     // Click header to select adapter
-    const header = section.querySelector('.ai-section-header');
-    header.addEventListener('click', (e) => {
-      if (e.target.closest('.ai-action-btn')) return;
+    section.querySelector('.ai-section-header').addEventListener('click', (e) => {
+      if (e.target.closest('.ai-section-toggle') || e.target.closest('input[type="checkbox"]')) return;
       selectAdapter(adapter.id);
     });
 
-    // New conversation button
+    // Enable/disable toggle
+    const toggle = section.querySelector(`[data-toggle="${adapter.id}"]`);
+    toggle.addEventListener('change', async (e) => {
+      e.stopPropagation();
+      const on = e.target.checked;
+      config = await window.aiHub.toggleAdapter(adapter.id, on);
+      section.classList.toggle('ai-section-disabled', !on);
+    });
+    toggle.addEventListener('click', (e) => e.stopPropagation());
+
+    // Login button
+    section.querySelector('[data-action="login"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectAdapter(adapter.id);
+    });
+
+    // New conversation
     section.querySelector('[data-action="new"]').addEventListener('click', (e) => {
       e.stopPropagation();
       window.aiHub.newConversation(adapter.id);
     });
 
-    // Delete conversation button
+    // Delete conversation
     section.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
       e.stopPropagation();
       if (confirm(`Delete current conversation in ${adapter.name}?`)) {
@@ -107,10 +129,8 @@ function renderSidebar() {
         e.stopPropagation();
         const modelId = e.target.value;
         config = await window.aiHub.switchModel(adapter.id, modelId);
-        // Update adapter's currentModel in memory
         adapter.currentModel = modelId;
       });
-      // Prevent clicking on select from triggering adapter selection
       modelSelect.addEventListener('click', (e) => e.stopPropagation());
     }
 
@@ -122,26 +142,20 @@ function selectAdapter(id) {
   activeAdapter = id;
   const adapter = adapters.find(a => a.id === id);
 
-  // Update header
   document.getElementById('current-adapter-icon').textContent = adapter.icon;
   document.getElementById('current-adapter-name').textContent = adapter.name;
 
-  // Update sidebar active state
   document.querySelectorAll('.ai-section-header').forEach(el => {
     el.classList.toggle('active', el.dataset.id === id);
   });
 
-  // Show webview
   window.aiHub.showView(id);
-
-  // Hide welcome screen
   document.getElementById('welcome-screen').style.display = 'none';
 }
 
 // ── Reply Panel ─────────────────────────────────────────
 function toggleReplyPanel() {
-  const panel = document.getElementById('reply-panel');
-  panel.classList.toggle('hidden');
+  document.getElementById('reply-panel').classList.toggle('hidden');
 }
 
 function renderReplyCard(adapterId) {
@@ -174,7 +188,6 @@ function updateReply(adapterId, text) {
     body.className = 'reply-card-body receiving';
   }
 
-  // Update sidebar badge
   const sidebarSection = document.querySelector(`.ai-section[data-id="${adapterId}"]`);
   if (sidebarSection && !sidebarSection.querySelector('.reply-badge')) {
     const badge = document.createElement('div');
@@ -197,15 +210,9 @@ function markReplyError(adapterId, msg) {
   const card = renderReplyCard(adapterId);
   if (card) {
     const dot = card.querySelector('.dot');
-    if (dot) {
-      dot.classList.remove('loading');
-      dot.style.background = 'var(--error)';
-    }
+    if (dot) { dot.classList.remove('loading'); dot.style.background = 'var(--error)'; }
     const body = card.querySelector('.reply-card-body');
-    if (body) {
-      body.textContent = `Error: ${msg}`;
-      body.style.color = 'var(--error)';
-    }
+    if (body) { body.textContent = `Error: ${msg}`; body.style.color = 'var(--error)'; }
   }
 }
 
@@ -215,17 +222,11 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
-  // Clear reply panel
   document.getElementById('reply-cards').innerHTML = '';
   replyBuffers = {};
-
-  // Remove badges
   document.querySelectorAll('.reply-badge').forEach(el => el.remove());
-
-  // Show reply panel
   document.getElementById('reply-panel').classList.remove('hidden');
 
-  // Pre-render cards for enabled adapters
   adapters.forEach(adapter => {
     const enabled = config.adapters?.[adapter.id]?.enabled !== false;
     if (enabled) renderReplyCard(adapter.id);
@@ -233,46 +234,33 @@ async function sendMessage() {
 
   input.value = '';
   autoResize(input);
-
-  // Send to all enabled
   await window.aiHub.sendMessage(text);
 }
 
 // ── Events ──────────────────────────────────────────────
 function setupEvents() {
-  // Send button
   document.getElementById('btn-send').addEventListener('click', sendMessage);
 
-  // Input
   const input = document.getElementById('message-input');
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendMessage(); }
   });
   input.addEventListener('input', () => autoResize(input));
 
-  // Reply panel toggle
   document.getElementById('btn-toggle-reply').addEventListener('click', toggleReplyPanel);
   document.getElementById('btn-close-reply').addEventListener('click', () => {
     document.getElementById('reply-panel').classList.add('hidden');
   });
 
-  // Settings
   document.getElementById('btn-settings').addEventListener('click', openSettings);
   document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
   document.querySelector('.modal-backdrop').addEventListener('click', closeSettings);
-
-  // Theme toggle
   document.getElementById('btn-theme').addEventListener('click', toggleTheme);
 
-  // Reload
   document.getElementById('btn-reload').addEventListener('click', () => {
     if (activeAdapter) window.aiHub.reloadView(activeAdapter);
   });
 
-  // External
   document.getElementById('btn-external').addEventListener('click', () => {
     if (activeAdapter) {
       const adapter = adapters.find(a => a.id === activeAdapter);
@@ -280,22 +268,14 @@ function setupEvents() {
     }
   });
 
-  // IPC events
   window.aiHub.onReplyStart((id) => {
     const card = document.getElementById(`reply-${id}`);
-    if (card) {
-      const dot = card.querySelector('.dot');
-      if (dot) dot.classList.add('loading');
-    }
+    if (card) { const dot = card.querySelector('.dot'); if (dot) dot.classList.add('loading'); }
   });
-
   window.aiHub.onReplyChunk((id, text) => updateReply(id, text));
   window.aiHub.onReplyDone((id) => markReplyDone(id));
   window.aiHub.onReplyError((id, msg) => markReplyError(id, msg));
-  window.aiHub.onViewChanged((id) => {
-    activeAdapter = id;
-    renderSidebar();
-  });
+  window.aiHub.onViewChanged((id) => { activeAdapter = id; renderSidebar(); });
   window.aiHub.onOpenSettings(() => openSettings());
 }
 
@@ -349,9 +329,7 @@ function closeSettings() {
 
 // ── Resize ──────────────────────────────────────────────
 function setupResize() {
-  const ro = new ResizeObserver(() => {
-    window.aiHub.resizeViews();
-  });
+  const ro = new ResizeObserver(() => { window.aiHub.resizeViews(); });
   ro.observe(document.body);
 }
 

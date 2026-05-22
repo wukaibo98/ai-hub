@@ -100,6 +100,14 @@ body.light {
   margin-bottom: 4px;
 }
 
+.ai-section-disabled {
+  opacity: 0.45;
+}
+
+.ai-section-disabled .ai-section-header {
+  cursor: default;
+}
+
 .ai-section-header {
   display: flex;
   align-items: center;
@@ -137,15 +145,17 @@ body.light {
   text-overflow: ellipsis;
 }
 
+.ai-section-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px 6px 44px;
+}
+
 .ai-section-actions {
   display: flex;
   gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.ai-section-header:hover .ai-section-actions {
-  opacity: 1;
+  margin-left: auto;
 }
 
 .ai-action-btn {
@@ -170,6 +180,50 @@ body.light {
   color: var(--error);
 }
 
+/* ── Section Toggle ───────────────────────────────── */
+.ai-section-toggle {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.ai-section-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.ai-section-toggle-track {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--text-muted);
+  border-radius: 9px;
+  transition: 0.2s;
+}
+
+.ai-section-toggle-track::before {
+  content: '';
+  position: absolute;
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.ai-section-toggle input:checked + .ai-section-toggle-track {
+  background: var(--accent);
+}
+
+.ai-section-toggle input:checked + .ai-section-toggle-track::before {
+  transform: translateX(14px);
+}
+
 .ai-section-status {
   width: 6px;
   height: 6px;
@@ -184,29 +238,30 @@ body.light {
 
 /* ── Model Selector ───────────────────────────────── */
 .ai-model-select {
-  display: block;
-  width: 100%;
-  padding: 2px 10px 2px 44px;
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
   font-size: 11px;
   font-family: inherit;
   cursor: pointer;
   outline: none;
   appearance: none;
   -webkit-appearance: none;
-  transition: color 0.15s;
-  margin-top: -2px;
-  margin-bottom: 4px;
+  transition: all 0.15s;
 }
 
 .ai-model-select:hover {
-  color: var(--text-secondary);
+  border-color: var(--text-muted);
+  color: var(--text);
 }
 
 .ai-model-select:focus {
-  color: var(--accent);
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 .ai-model-select option {
