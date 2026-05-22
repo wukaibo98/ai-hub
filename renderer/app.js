@@ -37,14 +37,58 @@ async function init() {
 }
 
 // ── Theme ───────────────────────────────────────────────
+const THEMES = {
+  dark: {
+    '--bg': '#0a0a0a',
+    '--bg-secondary': '#111111',
+    '--bg-tertiary': '#1a1a1a',
+    '--bg-hover': '#222222',
+    '--border': '#2a2a2a',
+    '--text': '#e8e8e8',
+    '--text-secondary': '#888888',
+    '--text-muted': '#555555',
+  },
+  light: {
+    '--bg': '#f5f5f7',
+    '--bg-secondary': '#ffffff',
+    '--bg-tertiary': '#f0f0f2',
+    '--bg-hover': '#e8e8ed',
+    '--border': '#d2d2d7',
+    '--text': '#1d1d1f',
+    '--text-secondary': '#6e6e73',
+    '--text-muted': '#aeaeb2',
+  }
+};
+
 function applyTheme(theme) {
+  const t = THEMES[theme] || THEMES.dark;
+  const root = document.documentElement;
+
+  // Force-set every CSS variable on :root (bypass body.light specificity issues)
+  Object.entries(t).forEach(([key, val]) => {
+    root.style.setProperty(key, val);
+  });
+
+  // Also set body classes for any body.light CSS rules
   document.body.classList.toggle('light', theme === 'light');
   document.body.classList.toggle('dark', theme !== 'light');
+
+  // Force body background (some Electron versions ignore CSS var changes)
+  document.body.style.background = t['--bg'];
+  document.body.style.color = t['--text'];
+
+  // Update sidebar/header/input backgrounds explicitly
+  ['sidebar', 'header', 'input-area'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.background = t['--bg-secondary'];
+  });
+
+  // Update button icon
   const btn = document.getElementById('btn-theme');
   if (btn) {
     btn.innerHTML = theme === 'light'
-      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
-      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+      ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+      : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
   }
 }
 
