@@ -163,23 +163,29 @@ function getAdapterById(id) {
 
 function positionView(adapterId) {
   const view = webviews[adapterId];
-  if (!view || !mainWindow) return;
+  if (!view || !mainWindow || mainWindow.isDestroyed()) return;
 
   const contentBounds = mainWindow.getContentBounds();
+  if (!contentBounds || !contentBounds.width || !contentBounds.height) return;
+
   const sidebarWidth = 220;
   const headerHeight = 52;
   const inputHeight = 80;
 
-  const x = sidebarWidth;
-  const y = headerHeight;
-  const w = contentBounds.width - sidebarWidth;
-  const h = contentBounds.height - headerHeight - inputHeight;
+  const w = Math.max(contentBounds.width - sidebarWidth, 100);
+  const h = Math.max(contentBounds.height - headerHeight - inputHeight, 100);
 
-  view.setBounds({ x, y, width: w, height: h });
-  viewBounds[adapterId] = { x, y, w, h };
+  try {
+    view.setBounds({ x: sidebarWidth, y: headerHeight, width: w, height: h });
+  } catch (e) {
+    console.error(`positionView failed for ${adapterId}:`, e.message);
+  }
+  viewBounds[adapterId] = { x: sidebarWidth, y: headerHeight, w, h };
 }
 
 function showView(adapterId) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
   // Hide all views
   Object.keys(webviews).forEach(id => {
     if (id !== adapterId) {
@@ -193,10 +199,14 @@ function showView(adapterId) {
     createWebview(adapterId, adapter.url);
   }
 
-  mainWindow.addBrowserView(webviews[adapterId]);
-  positionView(adapterId);
-  activeView = adapterId;
+  try {
+    mainWindow.addBrowserView(webviews[adapterId]);
+    positionView(adapterId);
+  } catch (e) {
+    console.error(`showView failed for ${adapterId}:`, e.message);
+  }
 
+  activeView = adapterId;
   mainWindow.webContents.send('view-changed', adapterId);
 }
 
@@ -341,5 +351,9 @@ app.on('window-all-closed', () => {
 
 // Handle resize
 ipcMain.on('window-resize', () => {
-  if (activeView) positionView(activeView);
+  try {
+    if (activeView) positionView(activeView);
+  } catch (e) {
+    console.error('Resize failed:', e.message);
+  }
 });
