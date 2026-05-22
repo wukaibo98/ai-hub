@@ -266,6 +266,11 @@ ipcMain.handle('get-config', () => config);
 ipcMain.handle('save-config', (event, newConfig) => {
   config = { ...config, ...newConfig };
   saveConfig(config);
+  // Update window background for theme
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    const isLight = config.ui?.theme === 'light';
+    mainWindow.setBackgroundColor(isLight ? '#f5f5f7' : '#0a0a0a');
+  }
   return config;
 });
 
