@@ -5,6 +5,7 @@ module.exports = {
   icon: '🟠',
   color: '#ff6900',
   group: 'domestic',
+  sortOrder: 1,
 
   models: [
     { id: 'mimo-v2',      name: 'MiMo v2',       url: 'https://aistudio.xiaomimimo.com/#/c' },

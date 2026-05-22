@@ -4,6 +4,8 @@
     "deepseek": { "enabled": true, "model": "deepseek-chat" },
     "kimi":     { "enabled": true, "model": "kimi-k2" },
     "minimax":  { "enabled": true, "model": "minimax-abab7" },
+    "qianwen":  { "enabled": true, "model": "qianwen-max" },
+    "ernie":    { "enabled": true, "model": "ernie-4" },
     "doubao":   { "enabled": true, "model": "doubao-pro" },
     "chatgpt":  { "enabled": true, "model": "gpt-4o" },
     "custom":   { "enabled": false, "url": "" }

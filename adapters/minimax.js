@@ -5,6 +5,7 @@ module.exports = {
   icon: '🔵',
   color: '#3b82f6',
   group: 'domestic',
+  sortOrder: 4,
 
   models: [
     { id: 'minimax-abab7', name: 'Abab 7', url: 'https://www.minimaxi.com' },

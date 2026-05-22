@@ -1,22 +1,39 @@
 module.exports = {
-  id: 'custom',
-  name: 'Custom',
-  url: '',
-  icon: '🔧',
-  color: '#8b5cf6',
-  group: 'custom',
-  sortOrder: 1,
+  id: 'ernie',
+  name: '文心一言',
+  url: 'https://yiyan.baidu.com',
+  icon: '🟢',
+  color: '#16a34a',
+  group: 'domestic',
+  sortOrder: 6,
 
-  models: [],
-  defaultModel: null,
-
-  // Custom adapter uses the URL from config
-  getUrl(config) {
-    return config.adapters?.custom?.url || '';
-  },
+  models: [
+    { id: 'ernie-4', name: 'ERNIE 4.0', url: 'https://yiyan.baidu.com' },
+    { id: 'ernie-3.5', name: 'ERNIE 3.5' },
+  ],
+  defaultModel: 'ernie-4',
 
   switchModelScript(modelId) {
-    return `(async () => { /* Custom adapter: no model switching */ })();`;
+    return `
+      (async () => {
+        const modelBtn = [...document.querySelectorAll('button, div[role="button"], span')].find(b =>
+          b.textContent.match(/ernie|文心|4\.0|3\.5/i) && b.offsetParent !== null
+        );
+        if (modelBtn) {
+          modelBtn.click();
+          await new Promise(r => setTimeout(r, 500));
+          const targetId = ${JSON.stringify(modelId)};
+          const options = document.querySelectorAll('[role="option"], [role="menuitem"], [class*="model"], li');
+          for (const opt of options) {
+            const text = opt.textContent.trim().toLowerCase();
+            if (text.includes(targetId.replace('ernie-', '')) || text.includes(targetId)) {
+              opt.click();
+              return;
+            }
+          }
+        }
+      })();
+    `;
   },
 
   newConversationScript() {
@@ -27,6 +44,7 @@ module.exports = {
           b.textContent.trim().toLowerCase().includes('new chat')
         );
         if (newBtn) newBtn.click();
+        else window.location.href = 'https://yiyan.baidu.com';
       })();
     `;
   },
@@ -41,7 +59,7 @@ module.exports = {
           firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
           firstItem.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
           await new Promise(r => setTimeout(r, 500));
-          const moreBtn = firstItem.querySelector('button');
+          const moreBtn = firstItem.querySelector('button') || document.querySelector('button[aria-label="更多"]');
           if (moreBtn) { moreBtn.click(); await new Promise(r => setTimeout(r, 300)); }
           const deleteBtn = [...document.querySelectorAll('button, [role="menuitem"], div[role="button"]')].find(b =>
             b.textContent.trim().includes('删除') || b.textContent.trim().toLowerCase().includes('delete')
@@ -54,7 +72,7 @@ module.exports = {
             );
             if (confirmBtn) confirmBtn.click();
           }
-        } catch(e) { console.error('AI Hub delete error (Custom):', e); }
+        } catch(e) { console.error('AI Hub delete error (Ernie):', e); }
       })();
     `;
   },
@@ -73,11 +91,11 @@ module.exports = {
           ta.focus();
           document.execCommand('insertText', false, ${escaped});
           await new Promise(r => setTimeout(r, 500));
-          const sendBtn = document.querySelector('button[type="submit"]') || document.querySelector('[aria-label="发送"]') || document.querySelector('[aria-label="Send"]') ||
+          const sendBtn = document.querySelector('button[type="submit"]') || document.querySelector('[aria-label="发送"]') ||
             [...document.querySelectorAll('button')].find(b => { const t = b.textContent.trim().toLowerCase(); return t === '发送' || t === 'send'; });
           if (sendBtn && !sendBtn.disabled) sendBtn.click();
           else ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
-        } catch(e) { console.error('AI Hub send error (Custom):', e); }
+        } catch(e) { console.error('AI Hub send error (Ernie):', e); }
       })();
     `;
   },
@@ -86,7 +104,7 @@ module.exports = {
     (function() {
       if (window.__aiHubObserver) return;
       window.__aiHubObserver = true;
-      const ADAPTER_ID = 'custom';
+      const ADAPTER_ID = 'ernie';
       let lastText = '';
       let debounceTimer = null;
       function getLatestReply() {

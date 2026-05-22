@@ -5,6 +5,7 @@ module.exports = {
   icon: '🔍',
   color: '#4d6bfe',
   group: 'domestic',
+  sortOrder: 2,
 
   models: [
     { id: 'deepseek-chat',    name: 'DeepSeek-V3',    url: 'https://chat.deepseek.com' },

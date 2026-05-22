@@ -5,6 +5,7 @@ module.exports = {
   icon: '🫘',
   color: '#2563eb',
   group: 'domestic',
+  sortOrder: 7,
 
   models: [
     { id: 'doubao-pro', name: '豆包 Pro', url: 'https://www.doubao.com/chat/' },

@@ -5,6 +5,7 @@ module.exports = {
   icon: '🌙',
   color: '#6366f1',
   group: 'domestic',
+  sortOrder: 3,
 
   models: [
     { id: 'kimi-k2',   name: 'Kimi K2' },

@@ -5,6 +5,7 @@ module.exports = {
   icon: '🤖',
   color: '#10a37f',
   group: 'international',
+  sortOrder: 1,
 
   models: [
     { id: 'gpt-4o',       name: 'GPT-4o',       url: 'https://chatgpt.com/?model=gpt-4o' },

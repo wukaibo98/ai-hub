@@ -1,22 +1,40 @@
 module.exports = {
-  id: 'custom',
-  name: 'Custom',
-  url: '',
-  icon: '🔧',
-  color: '#8b5cf6',
-  group: 'custom',
-  sortOrder: 1,
+  id: 'qianwen',
+  name: '通义千问',
+  url: 'https://tongyi.aliyun.com/qianwen',
+  icon: '🟣',
+  color: '#7c3aed',
+  group: 'domestic',
+  sortOrder: 5,
 
-  models: [],
-  defaultModel: null,
-
-  // Custom adapter uses the URL from config
-  getUrl(config) {
-    return config.adapters?.custom?.url || '';
-  },
+  models: [
+    { id: 'qianwen-max', name: 'Qwen Max', url: 'https://tongyi.aliyun.com/qianwen' },
+    { id: 'qianwen-plus', name: 'Qwen Plus' },
+    { id: 'qianwen-turbo', name: 'Qwen Turbo' },
+  ],
+  defaultModel: 'qianwen-max',
 
   switchModelScript(modelId) {
-    return `(async () => { /* Custom adapter: no model switching */ })();`;
+    return `
+      (async () => {
+        const modelBtn = [...document.querySelectorAll('button, div[role="button"], span')].find(b =>
+          b.textContent.match(/qwen|千问|通义|max|plus|turbo/i) && b.offsetParent !== null
+        );
+        if (modelBtn) {
+          modelBtn.click();
+          await new Promise(r => setTimeout(r, 500));
+          const targetId = ${JSON.stringify(modelId)};
+          const options = document.querySelectorAll('[role="option"], [role="menuitem"], [class*="model"], li');
+          for (const opt of options) {
+            const text = opt.textContent.trim().toLowerCase();
+            if (text.includes(targetId.replace('qianwen-', '')) || text.includes(targetId)) {
+              opt.click();
+              return;
+            }
+          }
+        }
+      })();
+    `;
   },
 
   newConversationScript() {
@@ -27,6 +45,7 @@ module.exports = {
           b.textContent.trim().toLowerCase().includes('new chat')
         );
         if (newBtn) newBtn.click();
+        else window.location.href = 'https://tongyi.aliyun.com/qianwen';
       })();
     `;
   },
@@ -41,7 +60,7 @@ module.exports = {
           firstItem.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
           firstItem.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
           await new Promise(r => setTimeout(r, 500));
-          const moreBtn = firstItem.querySelector('button');
+          const moreBtn = firstItem.querySelector('button') || document.querySelector('button[aria-label="更多"]');
           if (moreBtn) { moreBtn.click(); await new Promise(r => setTimeout(r, 300)); }
           const deleteBtn = [...document.querySelectorAll('button, [role="menuitem"], div[role="button"]')].find(b =>
             b.textContent.trim().includes('删除') || b.textContent.trim().toLowerCase().includes('delete')
@@ -54,7 +73,7 @@ module.exports = {
             );
             if (confirmBtn) confirmBtn.click();
           }
-        } catch(e) { console.error('AI Hub delete error (Custom):', e); }
+        } catch(e) { console.error('AI Hub delete error (Qianwen):', e); }
       })();
     `;
   },
@@ -73,11 +92,11 @@ module.exports = {
           ta.focus();
           document.execCommand('insertText', false, ${escaped});
           await new Promise(r => setTimeout(r, 500));
-          const sendBtn = document.querySelector('button[type="submit"]') || document.querySelector('[aria-label="发送"]') || document.querySelector('[aria-label="Send"]') ||
+          const sendBtn = document.querySelector('button[type="submit"]') || document.querySelector('[aria-label="发送"]') ||
             [...document.querySelectorAll('button')].find(b => { const t = b.textContent.trim().toLowerCase(); return t === '发送' || t === 'send'; });
           if (sendBtn && !sendBtn.disabled) sendBtn.click();
           else ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
-        } catch(e) { console.error('AI Hub send error (Custom):', e); }
+        } catch(e) { console.error('AI Hub send error (Qianwen):', e); }
       })();
     `;
   },
@@ -86,7 +105,7 @@ module.exports = {
     (function() {
       if (window.__aiHubObserver) return;
       window.__aiHubObserver = true;
-      const ADAPTER_ID = 'custom';
+      const ADAPTER_ID = 'qianwen';
       let lastText = '';
       let debounceTimer = null;
       function getLatestReply() {

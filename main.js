@@ -322,11 +322,14 @@ ipcMain.handle('get-adapters', () => {
   const adapters = loadAdapters();
   // Define group order
   const groupOrder = { domestic: 0, international: 1, custom: 2 };
-  // Sort by group, then by name within group
+  // Sort by group, then by sortOrder within group, then by name
   adapters.sort((a, b) => {
     const ga = groupOrder[a.group] ?? 99;
     const gb = groupOrder[b.group] ?? 99;
     if (ga !== gb) return ga - gb;
+    const sa = a.sortOrder ?? 999;
+    const sb = b.sortOrder ?? 999;
+    if (sa !== sb) return sa - sb;
     return (a.name || '').localeCompare(b.name || '');
   });
   // Attach current model selection to each adapter
