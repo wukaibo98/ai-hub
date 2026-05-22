@@ -108,9 +108,9 @@ module.exports = {
       let debounceTimer = null;
       function getLatestReply() {
         const msgs = document.querySelectorAll('[data-testid="message-ai"], .message--ai');
-        if (msgs.length > 0) return msgs[msgs.length - 1].innerText || '';
+        if (msgs.length > 0) return msgs[msgs.length - 1].textContent || '';
         const all = document.querySelectorAll('.markdown-body');
-        return all.length > 0 ? all[all.length - 1].innerText || '' : '';
+        return all.length > 0 ? all[all.length - 1].textContent || '' : '';
       }
       function checkForUpdates() {
         const text = getLatestReply();

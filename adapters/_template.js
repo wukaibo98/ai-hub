@@ -95,7 +95,7 @@ module.exports = {
       let debounceTimer = null;
       function getLatestReply() {
         const msgs = document.querySelectorAll('.ai-message');
-        return msgs.length > 0 ? msgs[msgs.length - 1].innerText : '';
+        return msgs.length > 0 ? msgs[msgs.length - 1].textContent : '';
       }
       function check() {
         const text = getLatestReply();

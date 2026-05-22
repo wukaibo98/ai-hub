@@ -115,7 +115,7 @@ body.light {
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease;
   position: relative;
 }
 
@@ -168,7 +168,7 @@ body.light {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .ai-action-btn:hover {
@@ -251,7 +251,7 @@ body.light {
   outline: none;
   appearance: none;
   -webkit-appearance: none;
-  transition: all 0.15s;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .ai-model-select:hover {
@@ -306,7 +306,7 @@ body.light {
   cursor: pointer;
   border-radius: var(--radius-sm);
   font-size: 13px;
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .sidebar-footer button:hover {
@@ -364,7 +364,7 @@ body.light {
   cursor: pointer;
   padding: 6px;
   border-radius: var(--radius-sm);
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
 .header-right button:hover {
@@ -567,7 +567,7 @@ body.light {
   cursor: pointer;
   padding: 8px;
   border-radius: var(--radius-sm);
-  transition: all 0.15s;
+  transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
 

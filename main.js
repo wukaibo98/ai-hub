@@ -21,16 +21,18 @@ function deepMerge(target, source) {
 function loadConfig() {
   const defaults = JSON.parse(fs.readFileSync(path.join(__dirname, 'config-default.json'), 'utf8'));
   try {
-    if (fs.existsSync(CONFIG_PATH)) {
-      const saved = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-      return deepMerge(defaults, saved);
-    }
-  } catch (e) { console.error('Config load error:', e); }
+    const saved = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+    return deepMerge(defaults, saved);
+  } catch (e) { /* config file doesn't exist or is invalid, use defaults */ }
   return defaults;
 }
 
 function saveConfig(cfg) {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+  try {
+    fs.writeFile(CONFIG_PATH, JSON.stringify(cfg, null, 2), (err) => {
+      if (err) console.error('Config save error:', err);
+    });
+  } catch (e) { console.error('Config save error:', e); }
 }
 
 let config = loadConfig();

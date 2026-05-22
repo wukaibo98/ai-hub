@@ -123,9 +123,9 @@ module.exports = {
       let debounceTimer = null;
       function getLatestReply() {
         const selectors = ['.message-ai','.ai-message','.assistant-message','[data-role="assistant"]','.chat-message--assistant','.message-bot','.bot-message','.markdown-body','.message-content'];
-        for (const sel of selectors) { const msgs = document.querySelectorAll(sel); if (msgs.length > 0) return msgs[msgs.length - 1].innerText || ''; }
+        for (const sel of selectors) { const msgs = document.querySelectorAll(sel); if (msgs.length > 0) return msgs[msgs.length - 1].textContent || ''; }
         const allMsgs = document.querySelectorAll('[class*="message"]');
-        return allMsgs.length >= 2 ? allMsgs[allMsgs.length - 1].innerText || '' : '';
+        return allMsgs.length >= 2 ? allMsgs[allMsgs.length - 1].textContent || '' : '';
       }
       function checkForUpdates() {
         const text = getLatestReply();

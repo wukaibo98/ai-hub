@@ -106,7 +106,7 @@ module.exports = {
       let debounceTimer = null;
       function getLatestReply() {
         const msgs = document.querySelectorAll('.ds-markdown--block, .markdown-body');
-        return msgs.length > 0 ? msgs[msgs.length - 1].innerText || '' : '';
+        return msgs.length > 0 ? msgs[msgs.length - 1].textContent || '' : '';
       }
       function checkForUpdates() {
         const text = getLatestReply();

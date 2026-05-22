@@ -145,12 +145,16 @@ function selectAdapter(id) {
   document.getElementById('current-adapter-icon').textContent = adapter.icon;
   document.getElementById('current-adapter-name').textContent = adapter.name;
 
-  document.querySelectorAll('.ai-section-header').forEach(el => {
-    el.classList.toggle('active', el.dataset.id === id);
-  });
+  updateActiveHeader(id);
 
   window.aiHub.showView(id);
   document.getElementById('welcome-screen').style.display = 'none';
+}
+
+function updateActiveHeader(id) {
+  document.querySelectorAll('.ai-section-header').forEach(el => {
+    el.classList.toggle('active', el.dataset.id === id);
+  });
 }
 
 // ── Reply Panel ─────────────────────────────────────────
@@ -275,7 +279,7 @@ function setupEvents() {
   window.aiHub.onReplyChunk((id, text) => updateReply(id, text));
   window.aiHub.onReplyDone((id) => markReplyDone(id));
   window.aiHub.onReplyError((id, msg) => markReplyError(id, msg));
-  window.aiHub.onViewChanged((id) => { activeAdapter = id; renderSidebar(); });
+  window.aiHub.onViewChanged((id) => { activeAdapter = id; updateActiveHeader(id); });
   window.aiHub.onOpenSettings(() => openSettings());
 }
 
@@ -329,7 +333,11 @@ function closeSettings() {
 
 // ── Resize ──────────────────────────────────────────────
 function setupResize() {
-  const ro = new ResizeObserver(() => { window.aiHub.resizeViews(); });
+  let resizeTimer = null;
+  const ro = new ResizeObserver(() => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { window.aiHub.resizeViews(); }, 16);
+  });
   ro.observe(document.body);
 }
 

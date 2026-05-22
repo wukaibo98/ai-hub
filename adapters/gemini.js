@@ -114,9 +114,9 @@ module.exports = {
       let debounceTimer = null;
       function getLatestReply() {
         const msgs = document.querySelectorAll('.model-response-text, .response-container');
-        if (msgs.length > 0) return msgs[msgs.length - 1].innerText || '';
+        if (msgs.length > 0) return msgs[msgs.length - 1].textContent || '';
         const bubbles = document.querySelectorAll('.message-content');
-        return bubbles.length > 0 ? bubbles[bubbles.length - 1].innerText || '' : '';
+        return bubbles.length > 0 ? bubbles[bubbles.length - 1].textContent || '' : '';
       }
       function checkForUpdates() {
         const text = getLatestReply();

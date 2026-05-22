@@ -123,9 +123,9 @@ module.exports = {
       function getLatestReply() {
         let msgs = document.querySelectorAll('[data-is-streaming]');
         if (msgs.length === 0) msgs = document.querySelectorAll('.font-claude-message');
-        if (msgs.length > 0) return msgs[msgs.length - 1].innerText || '';
+        if (msgs.length > 0) return msgs[msgs.length - 1].textContent || '';
         const turns = document.querySelectorAll('[data-testid="assistant-turn"]');
-        return turns.length > 0 ? turns[turns.length - 1].innerText || '' : '';
+        return turns.length > 0 ? turns[turns.length - 1].textContent || '' : '';
       }
       function checkForUpdates() {
         const text = getLatestReply();
