@@ -275,15 +275,19 @@ async function sendMessage(adapterId, text) {
   }
 
   replyBuffers[adapterId] = '';
-  mainWindow.webContents.send('reply-start', adapterId);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('reply-start', adapterId);
+  }
 
   const script = adapter.sendScript(text);
   try {
     await view.webContents.executeJavaScript(script);
   } catch (e) {
     console.error(`Send failed for ${adapterId}:`, e);
-    mainWindow.webContents.send('reply-error', adapterId, e.message);
-    mainWindow.webContents.send('reply-done', adapterId);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('reply-error', adapterId, e.message);
+      mainWindow.webContents.send('reply-done', adapterId);
+    }
   }
 }
 
@@ -371,6 +375,8 @@ ipcMain.handle('reload-view', (event, adapterId) => {
 ipcMain.handle('new-conversation', async (event, adapterId) => {
   const adapter = getAdapterById(adapterId);
   if (!adapter || !adapter.newConversationScript) return;
+  // Auto-create webview if it doesn't exist yet
+  if (!webviews[adapterId]) showView(adapterId);
   const view = webviews[adapterId];
   if (!view) return;
   try {
@@ -383,6 +389,8 @@ ipcMain.handle('new-conversation', async (event, adapterId) => {
 ipcMain.handle('delete-conversation', async (event, adapterId) => {
   const adapter = getAdapterById(adapterId);
   if (!adapter || !adapter.deleteConversationScript) return;
+  // Auto-create webview if it doesn't exist yet
+  if (!webviews[adapterId]) showView(adapterId);
   const view = webviews[adapterId];
   if (!view) return;
   try {
@@ -409,6 +417,19 @@ ipcMain.handle('switch-model', async (event, adapterId, modelId) => {
     if (view) {
       try {
         view.webContents.loadURL(model.url);
+        // Wait for the new page to finish loading before returning
+        await new Promise((resolve) => {
+          const timeout = setTimeout(resolve, 8000);
+          view.webContents.once('did-finish-load', () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+          view.webContents.once('did-fail-load', () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+        });
+        injectObserver(adapterId, view);
       } catch (e) {
         console.error(`Model switch URL load failed for ${adapterId}:`, e.message);
       }
