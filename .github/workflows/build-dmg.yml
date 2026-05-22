@@ -1,4 +1,4 @@
-name: Build macOS DMG
+name: Build & Release
 
 on:
   push:
@@ -14,7 +14,11 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        arch: [x64]
+        include:
+          - arch: x64
+            build_script: build
+          - arch: arm64
+            build_script: build:arm64
 
     steps:
       - name: Checkout
@@ -24,14 +28,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build DMG (macOS ${{ matrix.arch }})
-        run: npm run build
+        run: npm run ${{ matrix.build_script }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Code signing (optional — set these secrets if you have an Apple Developer account)
+          # CSC_LINK: ${{ secrets.CSC_LINK }}
+          # CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -40,11 +51,21 @@ jobs:
           path: dist/*.dmg
           retention-days: 30
 
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
+  release:
+    needs: build-macos
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.dmg
+          files: artifacts/**/*.dmg
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
