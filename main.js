@@ -5,12 +5,25 @@ const fs = require('fs');
 // ── Config ──────────────────────────────────────────────
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json');
 
+function deepMerge(target, source) {
+  const result = { ...target };
+  for (const key of Object.keys(source)) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key]) &&
+        target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])) {
+      result[key] = deepMerge(target[key], source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
 function loadConfig() {
   const defaults = JSON.parse(fs.readFileSync(path.join(__dirname, 'config-default.json'), 'utf8'));
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       const saved = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
-      return { ...defaults, ...saved };
+      return deepMerge(defaults, saved);
     }
   } catch (e) { console.error('Config load error:', e); }
   return defaults;
@@ -195,7 +208,7 @@ function positionView(adapterId) {
   const contentBounds = mainWindow.getContentBounds();
   if (!contentBounds || !contentBounds.width || !contentBounds.height) return;
 
-  const sidebarWidth = 220;
+  const sidebarWidth = config.ui?.sidebarWidth || 220;
   const headerHeight = 52;
   const inputHeight = 80;
 
@@ -268,6 +281,7 @@ async function sendMessage(adapterId, text) {
   } catch (e) {
     console.error(`Send failed for ${adapterId}:`, e);
     mainWindow.webContents.send('reply-error', adapterId, e.message);
+    mainWindow.webContents.send('reply-done', adapterId);
   }
 }
 
