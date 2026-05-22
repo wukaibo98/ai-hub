@@ -99,6 +99,7 @@ module.exports = {
           await new Promise(r => setTimeout(r, 500));
           const sendBtn = document.querySelector('button[aria-label="Send message"]') || document.querySelector('.send-button');
           if (sendBtn && !sendBtn.disabled) sendBtn.click();
+          else ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
         } catch(e) { console.error('AI Hub send error (Gemini):', e); }
       })();
     `;

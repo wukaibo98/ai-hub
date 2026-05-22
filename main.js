@@ -402,14 +402,21 @@ ipcMain.handle('switch-model', async (event, adapterId, modelId) => {
 
   // If model has a specific URL, reload the webview with it
   const model = adapter.models?.find(m => m.id === modelId);
+  const view = webviews[adapterId];
   if (model && model.url) {
-    const view = webviews[adapterId];
     if (view) {
       try {
         view.webContents.loadURL(model.url);
       } catch (e) {
         console.error(`Model switch URL load failed for ${adapterId}:`, e.message);
       }
+    }
+  } else if (view && adapter.switchModelScript) {
+    // For non-URL models, execute the UI-based switch script
+    try {
+      await view.webContents.executeJavaScript(adapter.switchModelScript(modelId));
+    } catch (e) {
+      console.error(`Model switch script failed for ${adapterId}:`, e.message);
     }
   }
 

@@ -93,6 +93,7 @@ module.exports = {
           await new Promise(r => setTimeout(r, 500));
           const sendBtn = document.querySelector('button[data-testid="send-button"]') || document.querySelector('[aria-label="发送"]');
           if (sendBtn && !sendBtn.disabled) sendBtn.click();
+          else ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
         } catch(e) { console.error('AI Hub send error (Kimi):', e); }
       })();
     `;

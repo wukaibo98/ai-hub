@@ -90,7 +90,8 @@ module.exports = {
           document.execCommand('insertText', false, ${escaped});
           await new Promise(r => setTimeout(r, 500));
           const sendBtn = document.querySelector('div[role="button"][aria-disabled="false"]') || document.querySelector('button[type="submit"]');
-          if (sendBtn) sendBtn.click();
+          if (sendBtn && !sendBtn.disabled) sendBtn.click();
+          else ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
         } catch(e) { console.error('AI Hub send error (DeepSeek):', e); }
       })();
     `;
