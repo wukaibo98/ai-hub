@@ -14,8 +14,7 @@
     "appId": "com.aihub.app",
     "productName": "AI Hub",
     "mac": {
-      "target": "dmg",
-      "arch": "x64"
+      "target": "dmg"
     }
   },
   "keywords": ["ai", "chatgpt", "claude", "gemini"],
