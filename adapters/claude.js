@@ -30,7 +30,8 @@ module.exports = {
           const target = pm || ta;
 
           // Escape HTML entities to prevent XSS
-          const safeText = ${escaped}.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          const raw = ${escaped};
+          const safeText = raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
           target.innerHTML = '<p>' + safeText + '</p>';
           target.dispatchEvent(new InputEvent('input', { bubbles: true }));
 
