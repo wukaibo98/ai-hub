@@ -1,0 +1,15 @@
+{
+  "adapters": {
+    "chatgpt": { "enabled": true },
+    "claude": { "enabled": true },
+    "gemini": { "enabled": true },
+    "deepseek": { "enabled": true },
+    "kimi": { "enabled": true },
+    "mimo": { "enabled": true }
+  },
+  "ui": {
+    "theme": "dark",
+    "sidebarWidth": 220,
+    "showReplyPanel": true
+  }
+}

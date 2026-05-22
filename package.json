@@ -1,0 +1,26 @@
+{
+  "name": "ai-hub",
+  "version": "1.0.0",
+  "description": "Multi-AI Chat Aggregator",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --mac --x64",
+    "dev": "NODE_ENV=development electron ."
+  },
+  "build": {
+    "appId": "com.aihub.app",
+    "productName": "AI Hub",
+    "mac": {
+      "target": "dmg",
+      "arch": "x64"
+    }
+  },
+  "keywords": ["ai", "chatgpt", "claude", "gemini"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}
